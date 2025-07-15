@@ -1,0 +1,25 @@
+
+{% extends 'base.html' %}
+{% block title %}Categorias{% endblock %}
+{% block content %}
+<h2>Categorias</h2>
+<a href="{% url 'categoria_create' %}" class="btn btn-success mb-3">Nova Categoria</a>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Nome</th>
+      <th>Descrição</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for categoria in categorias %}
+    <tr>
+      <td>{{ categoria.nome }}</td>
+      <td>{{ categoria.descricao }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="2">Nenhuma categoria cadastrada.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
