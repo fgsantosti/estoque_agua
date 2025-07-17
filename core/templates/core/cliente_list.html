@@ -11,18 +11,18 @@
   <thead>
     <tr>
       <th>Nome</th>
-      <th>CPF/CNPJ</th>
+      <th class="d-none d-md-table-cell">CPF/CNPJ</th>
       <th>Telefone</th>
-      <th>Email</th>
+      <th class="d-none d-md-table-cell">Email</th>
     </tr>
   </thead>
   <tbody>
     {% for cliente in page_obj %}
     <tr>
       <td>{{ cliente.nome }}</td>
-      <td>{{ cliente.cpf_cnpj }}</td>
+      <td class="d-none d-md-table-cell">{{ cliente.cpf_cnpj }}</td>
       <td>{{ cliente.telefone }}</td>
-      <td>{{ cliente.email }}</td>
+      <td class="d-none d-md-table-cell">{{ cliente.email }}</td>
     </tr>
     {% empty %}
     <tr><td colspan="4">Nenhum cliente encontrado.</td></tr>
