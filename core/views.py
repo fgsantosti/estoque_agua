@@ -1,16 +1,16 @@
-from datetime import datetime, timedelta
-from .models import (Categoria, Cliente, Fornecedor, MovimentacaoEstoque,
-                     Produto)
+from datetime import timedelta
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.db.models import Count, F, Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+
 from .forms import (CategoriaForm, ClienteForm, FornecedorForm,
                     MovimentacaoEstoqueForm, ProdutoForm)
-from django.utils import timezone
-from django.shortcuts import get_object_or_404, redirect, render
-from django.http import JsonResponse
-from django.db.models import Count, F, Q, Sum
-from django.db import models
-from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+from .models import (Categoria, Cliente, Fornecedor, MovimentacaoEstoque,
+                     Produto)
 
 
 @login_required
@@ -40,12 +40,14 @@ def cliente_edit(request, pk):
             return redirect('cliente_list')
     else:
         form = ClienteForm(instance=cliente)
-    return render(request, 'core/cliente_form.html', {'form': form, 'title': f'Editar Cliente: {cliente.nome}', 'cliente': cliente})
-    return render(request, 'core/cliente_form.html', {
-        'form': form,
-        'title': f'Editar Cliente: {cliente.nome}',
-        'cliente': cliente
-    })
+    return render(
+        request, 'core/cliente_form.html',
+        {
+            'form': form,
+            'title': f'Editar Cliente: {cliente.nome}',
+            'cliente': cliente
+        }
+    )
 
 
 @login_required
@@ -56,7 +58,6 @@ def cliente_delete(request, pk):
         messages.success(
             request, f'Cliente {cliente.nome} excluído com sucesso!')
         return redirect('cliente_list')
-    return render(request, 'core/confirm_delete.html', {'object': cliente, 'type': 'Cliente', 'cancel_url': 'cliente_list'})
     return render(request, 'core/confirm_delete.html', {
         'object': cliente,
         'type': 'Cliente',
@@ -76,12 +77,15 @@ def categoria_edit(request, pk):
             return redirect('categoria_list')
     else:
         form = CategoriaForm(instance=categoria)
-    return render(request, 'core/categoria_form.html', {'form': form, 'title': f'Editar Categoria: {categoria.nome}', 'categoria': categoria})
-    return render(request, 'core/categoria_form.html', {
-        'form': form,
-        'title': f'Editar Categoria: {categoria.nome}',
-        'categoria': categoria
-    })
+    return render(
+        request,
+        'core/categoria_form.html',
+        {
+            'form': form,
+            'title': f'Editar Categoria: {categoria.nome}',
+            'categoria': categoria
+        }
+    )
 
 
 @login_required
@@ -92,7 +96,6 @@ def categoria_delete(request, pk):
         messages.success(
             request, f'Categoria {categoria.nome} excluída com sucesso!')
         return redirect('categoria_list')
-    return render(request, 'core/confirm_delete.html', {'object': categoria, 'type': 'Categoria', 'cancel_url': 'categoria_list'})
     return render(request, 'core/confirm_delete.html', {
         'object': categoria,
         'type': 'Categoria',
@@ -108,11 +111,11 @@ def fornecedor_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(
-                request, f'Fornecedor {fornecedor.nome} atualizado com sucesso!')
+                request,
+                f'Fornecedor {fornecedor.nome} atualizado com sucesso!')
             return redirect('fornecedor_list')
     else:
         form = FornecedorForm(instance=fornecedor)
-    return render(request, 'core/fornecedor_form.html', {'form': form, 'title': f'Editar Fornecedor: {fornecedor.nome}', 'fornecedor': fornecedor})
     return render(request, 'core/fornecedor_form.html', {
         'form': form,
         'title': f'Editar Fornecedor: {fornecedor.nome}',
@@ -128,7 +131,6 @@ def fornecedor_delete(request, pk):
         messages.success(
             request, f'Fornecedor {fornecedor.nome} excluído com sucesso!')
         return redirect('fornecedor_list')
-    return render(request, 'core/confirm_delete.html', {'object': fornecedor, 'type': 'Fornecedor', 'cancel_url': 'fornecedor_list'})
     return render(request, 'core/confirm_delete.html', {
         'object': fornecedor,
         'type': 'Fornecedor',
@@ -233,7 +235,10 @@ def produto_create(request):
     else:
         form = ProdutoForm()
 
-    return render(request, 'core/produto_form.html', {'form': form, 'title': 'Novo Produto'})
+    return render(request,
+                  'core/produto_form.html',
+                  {'form': form, 'title': 'Novo Produto'}
+                  )
 
 
 @login_required
@@ -319,7 +324,10 @@ def movimentacao_create(request):
                 else:
                     messages.error(
                         request, 'Estoque insuficiente para esta saída!')
-                    return render(request, 'core/movimentacao_form.html', {'form': form})
+                    return render(request,
+                                  'core/movimentacao_form.html',
+                                  {'form': form}
+                                  )
             elif movimentacao.tipo == 'ajuste':
                 produto.estoque_atual = movimentacao.quantidade
 
@@ -348,7 +356,11 @@ def fornecedor_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'core/fornecedor_list.html', {'page_obj': page_obj, 'search': search})
+    return render(request,
+                  'core/fornecedor_list.html',
+                  {'page_obj': page_obj,
+                   'search': search}
+                  )
 
 
 @login_required
@@ -363,7 +375,10 @@ def fornecedor_create(request):
     else:
         form = FornecedorForm()
 
-    return render(request, 'core/fornecedor_form.html', {'form': form, 'title': 'Novo Fornecedor'})
+    return render(request,
+                  'core/fornecedor_form.html',
+                  {'form': form,
+                   'title': 'Novo Fornecedor'})
 
 
 @login_required
@@ -380,7 +395,10 @@ def cliente_list(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    return render(request, 'core/cliente_list.html', {'page_obj': page_obj, 'search': search})
+    return render(request,
+                  'core/cliente_list.html',
+                  {'page_obj': page_obj,
+                   'search': search})
 
 
 @login_required
@@ -395,13 +413,18 @@ def cliente_create(request):
     else:
         form = ClienteForm()
 
-    return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Novo Cliente'})
+    return render(request,
+                  'core/cliente_form.html',
+                  {'form': form,
+                   'title': 'Novo Cliente'})
 
 
 @login_required
 def categoria_list(request):
     categorias = Categoria.objects.all()
-    return render(request, 'core/categoria_list.html', {'categorias': categorias})
+    return render(request,
+                  'core/categoria_list.html',
+                  {'categorias': categorias})
 
 
 @login_required
@@ -416,4 +439,7 @@ def categoria_create(request):
     else:
         form = CategoriaForm()
 
-    return render(request, 'core/categoria_form.html', {'form': form, 'title': 'Nova Categoria'})
+    return render(request,
+                  'core/categoria_form.html',
+                  {'form': form,
+                   'title': 'Nova Categoria'})
