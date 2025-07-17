@@ -23,6 +23,10 @@
       <td class="d-none d-md-table-cell">{{ cliente.cpf_cnpj }}</td>
       <td>{{ cliente.telefone }}</td>
       <td class="d-none d-md-table-cell">{{ cliente.email }}</td>
+      <td>
+        <a href="{% url 'cliente_edit' cliente.pk %}" class="btn btn-sm btn-primary me-1">Editar</a>
+        <a href="{% url 'cliente_delete' cliente.pk %}" class="btn btn-sm btn-danger">Deletar</a>
+      </td>
     </tr>
     {% empty %}
     <tr><td colspan="4">Nenhum cliente encontrado.</td></tr>

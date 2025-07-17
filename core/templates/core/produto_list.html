@@ -60,7 +60,8 @@
       <td>{{ produto.estoque_atual }}</td>
       <td class="d-none d-md-table-cell">R$ {{ produto.preco_venda|floatformat:2 }}</td>
       <td>
-        <a href="{% url 'produto_edit' produto.pk %}" class="btn btn-sm btn-primary">Editar</a>
+        <a href="{% url 'produto_edit' produto.pk %}" class="btn btn-sm btn-primary me-1">Editar</a>
+        <a href="{% url 'produto_delete' produto.pk %}" class="btn btn-sm btn-danger">Deletar</a>
       </td>
     </tr>
     {% empty %}

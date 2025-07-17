@@ -23,6 +23,10 @@
       <td class="d-none d-md-table-cell">{{ fornecedor.cnpj }}</td>
       <td>{{ fornecedor.telefone }}</td>
       <td class="d-none d-md-table-cell">{{ fornecedor.email }}</td>
+      <td>
+        <a href="{% url 'fornecedor_edit' fornecedor.pk %}" class="btn btn-sm btn-primary me-1">Editar</a>
+        <a href="{% url 'fornecedor_delete' fornecedor.pk %}" class="btn btn-sm btn-danger">Deletar</a>
+      </td>
     </tr>
     {% empty %}
     <tr><td colspan="4">Nenhum fornecedor encontrado.</td></tr>
