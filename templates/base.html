@@ -65,55 +65,27 @@
 </head>
 <body>
     {% if user.is_authenticated %}
-        <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{% url 'dashboard' %}">
-                    <i class="fas fa-tint me-2"></i>Estoque Água
-                </a>
-                
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'dashboard' %}">
-                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'produto_list' %}">
-                                <i class="fas fa-box me-1"></i>Produtos
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'movimentacao_list' %}">
-                                <i class="fas fa-exchange-alt me-1"></i>Movimentações
-                            </a>
-                        </li>
-                    </ul>
-                    
-                    <div class="navbar-nav">
-                        <div class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>{{ user.first_name|default:user.username }}
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="/admin/" target="_blank"><i class="fas fa-cog me-2"></i>Admin</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+        <!-- Navbar visual topo -->
+        <div style="background: #1677ff; color: white; min-height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; font-size: 1.2rem; font-weight: 500;">
+            <div>
+                <i class="fas fa-tint me-2"></i>Estoque Água
             </div>
-        </nav>
-
+            <div>
+                <i class="fas fa-user me-1"></i>{{ user.first_name|default:user.username }}
+                <span class="dropdown">
+                    <a class="dropdown-toggle text-white text-decoration-none" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" style="font-size: 1rem;">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/admin/" target="_blank"><i class="fas fa-cog me-2"></i>Admin</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
+                    </ul>
+                </span>
+            </div>
+        </div>
+        <!-- Sidebar -->
         <div class="container-fluid">
             <div class="row">
-                <!-- Sidebar -->
                 <div class="col-md-3 col-lg-2 sidebar p-3 d-none d-md-block">
                     <nav class="nav flex-column">
                         <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
@@ -136,7 +108,6 @@
                         </a>
                     </nav>
                 </div>
-
                 <!-- Main Content -->
                 <div class="col-md-9 col-lg-10 p-4">
                     {% if messages %}
@@ -147,7 +118,6 @@
                             </div>
                         {% endfor %}
                     {% endif %}
-
                     {% block content %}
                     {% endblock %}
                 </div>

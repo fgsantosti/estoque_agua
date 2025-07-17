@@ -1,28 +1,9 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Estoque Água</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+{% extends 'base.html' %}
+
+{% block extra_css %}
     <link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .navbar-brand {
-            font-weight: bold;
-        }
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            transition: transform 0.2s;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-        }
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -39,264 +20,187 @@
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
             color: white;
         }
-        .sidebar {
-            background: white;
-            min-height: calc(100vh - 56px);
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-        }
-        .nav-link {
-            color: #495057;
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-            margin: 0.2rem 0;
-        }
-        .nav-link:hover {
-            background-color: #e9ecef;
-            color: #495057;
-        }
-        .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
     </style>
-</head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'dashboard' %}">
-                <i class="fas fa-tint me-2"></i>Estoque Água
-            </a>
-            
-            <div class="navbar-nav ms-auto">
-                <div class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-user me-1"></i>{{ user.first_name|default:user.username }}
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/admin/" target="_blank"><i class="fas fa-cog me-2"></i>Admin</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
-                    </ul>
-                </div>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Dashboard</h1>
+    <div class="text-muted">
+        <i class="fas fa-calendar me-1"></i>
+        {{ "now"|date:"d/m/Y H:i" }}
+    </div>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-box fa-2x mb-2"></i>
+                <h5 class="card-title">{{ total_produtos }}</h5>
+                <p class="card-text">Produtos Ativos</p>
             </div>
         </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 sidebar p-3">
-                <nav class="nav flex-column">
-                    <a class="nav-link active" href="{% url 'dashboard' %}">
-                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                    </a>
-                    <a class="nav-link" href="{% url 'produto_list' %}">
-                        <i class="fas fa-box me-2"></i>Produtos
-                    </a>
-                    <a class="nav-link" href="{% url 'movimentacao_list' %}">
-                        <i class="fas fa-exchange-alt me-2"></i>Movimentações
-                    </a>
-                    <a class="nav-link" href="{% url 'categoria_list' %}">
-                        <i class="fas fa-tags me-2"></i>Categorias
-                    </a>
-                    <a class="nav-link" href="{% url 'fornecedor_list' %}">
-                        <i class="fas fa-truck me-2"></i>Fornecedores
-                    </a>
-                    <a class="nav-link" href="{% url 'cliente_list' %}">
-                        <i class="fas fa-users me-2"></i>Clientes
-                    </a>
-                </nav>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                <h5 class="card-title">{{ produtos_estoque_baixo }}</h5>
+                <p class="card-text">Estoque Baixo</p>
             </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card-success">
+            <div class="card-body text-center">
+                <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                <h5 class="card-title">R$ {{ valor_total_estoque|floatformat:2 }}</h5>
+                <p class="card-text">Valor Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card stat-card-info">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x mb-2"></i>
+                <h5 class="card-title">{{ movimentacoes_recentes|length }}</h5>
+                <p class="card-text">Movimentações</p>
+            </div>
+        </div>
+    </div>
+</div>
 
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h1 class="h3">Dashboard</h1>
-                    <div class="text-muted">
-                        <i class="fas fa-calendar me-1"></i>
-                        {{ "now"|date:"d/m/Y H:i" }}
-                    </div>
-                </div>
-
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-
-                <!-- Cards de Estatísticas -->
-                <div class="row mb-4">
-                    <div class="col-md-3 mb-3">
-                        <div class="card stat-card">
-                            <div class="card-body text-center">
-                                <i class="fas fa-box fa-2x mb-2"></i>
-                                <h5 class="card-title">{{ total_produtos }}</h5>
-                                <p class="card-text">Produtos Ativos</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 mb-3">
-                        <div class="card stat-card-warning">
-                            <div class="card-body text-center">
-                                <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
-                                <h5 class="card-title">{{ produtos_estoque_baixo }}</h5>
-                                <p class="card-text">Estoque Baixo</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 mb-3">
-                        <div class="card stat-card-success">
-                            <div class="card-body text-center">
-                                <i class="fas fa-dollar-sign fa-2x mb-2"></i>
-                                <h5 class="card-title">R$ {{ valor_total_estoque|floatformat:2 }}</h5>
-                                <p class="card-text">Valor Total</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-3 mb-3">
-                        <div class="card stat-card-info">
-                            <div class="card-body text-center">
-                                <i class="fas fa-chart-line fa-2x mb-2"></i>
-                                <h5 class="card-title">{{ movimentacoes_recentes|length }}</h5>
-                                <p class="card-text">Movimentações</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <!-- Produtos com Estoque Baixo -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header bg-white">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                                    Produtos com Estoque Baixo
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                {% if produtos_baixo_estoque %}
-                                    <div class="list-group list-group-flush">
-                                        {% for produto in produtos_baixo_estoque %}
-                                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                                <div>
-                                                    <strong>{{ produto.nome }}</strong>
-                                                    <br>
-                                                    <small class="text-muted">{{ produto.categoria }}</small>
-                                                </div>
-                                                <div class="text-end">
-                                                    <span class="badge bg-warning">{{ produto.estoque_atual }}</span>
-                                                    <br>
-                                                    <small class="text-muted">Min: {{ produto.estoque_minimo }}</small>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                    <div class="text-center mt-3">
-                                        <a href="{% url 'produto_list' %}" class="btn btn-outline-primary btn-sm">
-                                            Ver Todos os Produtos
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <div class="text-center text-muted py-4">
-                                        <i class="fas fa-check-circle fa-3x mb-3"></i>
-                                        <p>Todos os produtos estão com estoque adequado!</p>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Movimentações Recentes -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header bg-white">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-history text-info me-2"></i>
-                                    Movimentações Recentes
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                {% if movimentacoes_recentes %}
-                                    <div class="list-group list-group-flush">
-                                        {% for mov in movimentacoes_recentes %}
-                                            <div class="list-group-item">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <strong>{{ mov.produto.nome }}</strong>
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            {{ mov.data_movimentacao|date:"d/m/Y H:i" }}
-                                                        </small>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <span class="badge bg-{% if mov.tipo == 'entrada' %}success{% else %}danger{% endif %}">
-                                                            {% if mov.tipo == 'entrada' %}+{% else %}-{% endif %}{{ mov.quantidade }}
-                                                        </span>
-                                                        <br>
-                                                        <small class="text-muted">{{ mov.get_tipo_display }}</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                    <div class="text-center mt-3">
-                                        <a href="{% url 'movimentacao_list' %}" class="btn btn-outline-primary btn-sm">
-                                            Ver Todas as Movimentações
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <div class="text-center text-muted py-4">
-                                        <i class="fas fa-inbox fa-3x mb-3"></i>
-                                        <p>Nenhuma movimentação registrada ainda.</p>
-                                        <a href="{% url 'movimentacao_create' %}" class="btn btn-primary btn-sm">
-                                            Criar Movimentação
-                                        </a>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Produtos Mais Movimentados -->
-                {% if produtos_mais_movimentados %}
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header bg-white">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-chart-bar text-success me-2"></i>
-                                    Produtos Mais Movimentados (Últimos 7 dias)
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    {% for produto in produtos_mais_movimentados %}
-                                        <div class="col-md-2 col-6 text-center mb-3">
-                                            <div class="border rounded p-3">
-                                                <h6 class="fw-bold">{{ produto.total_movimentacoes }}</h6>
-                                                <small class="text-muted">{{ produto.produto__nome|truncatechars:20 }}</small>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
+<div class="row">
+    <!-- Produtos com Estoque Baixo -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Produtos com Estoque Baixo
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if produtos_baixo_estoque %}
+                    <div class="list-group list-group-flush">
+                        {% for produto in produtos_baixo_estoque %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ produto.nome }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ produto.categoria }}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge bg-warning">{{ produto.estoque_atual }}</span>
+                                    <br>
+                                    <small class="text-muted">Min: {{ produto.estoque_minimo }}</small>
                                 </div>
                             </div>
-                        </div>
+                        {% endfor %}
                     </div>
-                </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'produto_list' %}" class="btn btn-outline-primary btn-sm">
+                            Ver Todos os Produtos
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                        <p>Todos os produtos estão com estoque adequado!</p>
+                    </div>
                 {% endif %}
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+    <!-- Movimentações Recentes -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history text-info me-2"></i>
+                    Movimentações Recentes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if movimentacoes_recentes %}
+                    <div class="list-group list-group-flush">
+                        {% for mov in movimentacoes_recentes %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ mov.produto.nome }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ mov.data_movimentacao|date:"d/m/Y H:i" }}
+                                        </small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{% if mov.tipo == 'entrada' %}success{% else %}danger{% endif %}">
+                                            {% if mov.tipo == 'entrada' %}+{% else %}-{% endif %}{{ mov.quantidade }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">{{ mov.get_tipo_display }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="{% url 'movimentacao_list' %}" class="btn btn-outline-primary btn-sm">
+                            Ver Todas as Movimentações
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>Nenhuma movimentação registrada ainda.</p>
+                        <a href="{% url 'movimentacao_create' %}" class="btn btn-primary btn-sm">
+                            Criar Movimentação
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Produtos Mais Movimentados -->
+{% if produtos_mais_movimentados %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar text-success me-2"></i>
+                    Produtos Mais Movimentados (Últimos 7 dias)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for produto in produtos_mais_movimentados %}
+                        <div class="col-md-2 col-6 text-center mb-3">
+                            <div class="border rounded p-3">
+                                <h6 class="fw-bold">{{ produto.total_movimentacoes }}</h6>
+                                <small class="text-muted">{{ produto.produto__nome|truncatechars:20 }}</small>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
