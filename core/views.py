@@ -264,43 +264,81 @@ def produto_edit(request, pk):
 
 @login_required
 def movimentacao_list(request):
+    from .forms import MovimentacaoFiltroForm
+    from django.db.models import Sum
+    from decimal import Decimal
+    
     movimentacoes = MovimentacaoEstoque.objects.select_related(
         'produto', 'usuario').all()
 
-    # Filtros
-    tipo = request.GET.get('tipo')
-    produto_id = request.GET.get('produto')
-    data_inicio = request.GET.get('data_inicio')
-    data_fim = request.GET.get('data_fim')
+    # Formulário de filtro
+    filtro_form = MovimentacaoFiltroForm(request.GET)
+    
+    # Aplicar filtros
+    if filtro_form.is_valid():
+        data_inicio = filtro_form.cleaned_data.get('data_inicio')
+        data_fim = filtro_form.cleaned_data.get('data_fim')
+        produto = filtro_form.cleaned_data.get('produto')
+        tipo = filtro_form.cleaned_data.get('tipo')
 
-    if tipo:
-        movimentacoes = movimentacoes.filter(tipo=tipo)
+        if data_inicio:
+            movimentacoes = movimentacoes.filter(
+                data_movimentacao__date__gte=data_inicio)
 
-    if produto_id:
-        movimentacoes = movimentacoes.filter(produto_id=produto_id)
+        if data_fim:
+            movimentacoes = movimentacoes.filter(
+                data_movimentacao__date__lte=data_fim)
 
-    if data_inicio:
-        movimentacoes = movimentacoes.filter(
-            data_movimentacao__date__gte=data_inicio)
+        if produto:
+            movimentacoes = movimentacoes.filter(produto=produto)
 
-    if data_fim:
-        movimentacoes = movimentacoes.filter(
-            data_movimentacao__date__lte=data_fim)
+        if tipo:
+            movimentacoes = movimentacoes.filter(tipo=tipo)
+
+    # Calcular totais por tipo
+    totais = {}
+    movimentacoes_para_calculo = movimentacoes
+    
+    for tipo_choice in MovimentacaoEstoque.TIPO_CHOICES:
+        tipo_codigo = tipo_choice[0]
+        movs_tipo = movimentacoes_para_calculo.filter(tipo=tipo_codigo)
+        
+        # Calcular valor total (quantidade * preco_unitario quando disponível)
+        valor_total = Decimal('0.00')
+        quantidade_total = 0
+        
+        for mov in movs_tipo:
+            quantidade_total += mov.quantidade
+            if mov.preco_unitario:
+                valor_total += mov.quantidade * mov.preco_unitario
+        
+        totais[tipo_codigo] = {
+            'nome': tipo_choice[1],
+            'quantidade': quantidade_total,
+            'valor': valor_total
+        }
+
+    # Calcular valor total geral
+    valor_total_geral = sum([total['valor'] for total in totais.values()])
+    quantidade_total_geral = sum([total['quantidade'] for total in totais.values()])
 
     # Paginação
     paginator = Paginator(movimentacoes, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    produtos = Produto.objects.filter(ativo=True)
-
     context = {
         'page_obj': page_obj,
-        'produtos': produtos,
-        'tipo': tipo,
-        'produto_id': produto_id,
-        'data_inicio': data_inicio,
-        'data_fim': data_fim,
+        'filtro_form': filtro_form,
+        'totais': totais,
+        'valor_total_geral': valor_total_geral,
+        'quantidade_total_geral': quantidade_total_geral,
+        'tem_filtros': any([
+            filtro_form.cleaned_data.get('data_inicio'),
+            filtro_form.cleaned_data.get('data_fim'),
+            filtro_form.cleaned_data.get('produto'),
+            filtro_form.cleaned_data.get('tipo')
+        ]) if filtro_form.is_valid() else False
     }
 
     return render(request, 'core/movimentacao_list.html', context)
