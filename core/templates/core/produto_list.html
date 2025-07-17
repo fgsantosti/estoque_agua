@@ -15,7 +15,7 @@
     <div class="card-body">
         <form method="get" class="row g-3">
             <div class="col-md-4">
-                <input type="text" name="search" value="{{ search }}" class="form-control" 
+                <input type="text" name="search" value="{{ search|default_if_none:'' }}" class="form-control" 
                        placeholder="Buscar por nome ou código">
             </div>
             <div class="col-md-4">
@@ -44,10 +44,10 @@
                 <thead class="table-light">
                     <tr>
                         <th><i class="fas fa-box me-1"></i>Nome</th>
-                        <th><i class="fas fa-barcode me-1"></i>Código</th>
-                        <th><i class="fas fa-tags me-1"></i>Categoria</th>
+                        <th class="d-none d-md-table-cell"><i class="fas fa-barcode me-1"></i>Código</th>
+                        <th class="d-none d-md-table-cell"><i class="fas fa-tags me-1"></i>Categoria</th>
                         <th><i class="fas fa-cubes me-1"></i>Estoque</th>
-                        <th><i class="fas fa-dollar-sign me-1"></i>Preço Venda</th>
+                        <th class="d-none d-md-table-cell"><i class="fas fa-dollar-sign me-1"></i>Preço Venda</th>
       <th>Ações</th>
     </tr>
   </thead>
@@ -55,12 +55,13 @@
     {% for produto in page_obj %}
     <tr {% if produto.estoque_baixo %}class="table-danger"{% endif %}>
       <td>{{ produto.nome }}</td>
-      <td>{{ produto.codigo }}</td>
-      <td>{{ produto.categoria.nome }}</td>
+      <td class="d-none d-md-table-cell">{{ produto.codigo }}</td>
+      <td class="d-none d-md-table-cell">{{ produto.categoria.nome }}</td>
       <td>{{ produto.estoque_atual }}</td>
-      <td>R$ {{ produto.preco_venda|floatformat:2 }}</td>
+      <td class="d-none d-md-table-cell">R$ {{ produto.preco_venda|floatformat:2 }}</td>
       <td>
-        <a href="{% url 'produto_edit' produto.pk %}" class="btn btn-sm btn-primary">Editar</a>
+        <a href="{% url 'produto_edit' produto.pk %}" class="btn btn-sm btn-primary me-1">Editar</a>
+        <a href="{% url 'produto_delete' produto.pk %}" class="btn btn-sm btn-danger">Deletar</a>
       </td>
     </tr>
     {% empty %}

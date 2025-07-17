@@ -5,24 +5,28 @@
 <h2>Fornecedores</h2>
 <a href="{% url 'fornecedor_create' %}" class="btn btn-success mb-3">Novo Fornecedor</a>
 <form method="get" class="mb-3">
-  <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Buscar por nome ou CNPJ">
+  <input type="text" name="search" value="{{ search|default_if_none:'' }}" class="form-control" placeholder="Buscar por nome ou CNPJ">
 </form>
 <table class="table table-striped">
   <thead>
     <tr>
       <th>Nome</th>
-      <th>CNPJ</th>
+      <th class="d-none d-md-table-cell">CNPJ</th>
       <th>Telefone</th>
-      <th>Email</th>
+      <th class="d-none d-md-table-cell">Email</th>
     </tr>
   </thead>
   <tbody>
     {% for fornecedor in page_obj %}
     <tr>
       <td>{{ fornecedor.nome }}</td>
-      <td>{{ fornecedor.cnpj }}</td>
+      <td class="d-none d-md-table-cell">{{ fornecedor.cnpj }}</td>
       <td>{{ fornecedor.telefone }}</td>
-      <td>{{ fornecedor.email }}</td>
+      <td class="d-none d-md-table-cell">{{ fornecedor.email }}</td>
+      <td>
+        <a href="{% url 'fornecedor_edit' fornecedor.pk %}" class="btn btn-sm btn-primary me-1">Editar</a>
+        <a href="{% url 'fornecedor_delete' fornecedor.pk %}" class="btn btn-sm btn-danger">Deletar</a>
+      </td>
     </tr>
     {% empty %}
     <tr><td colspan="4">Nenhum fornecedor encontrado.</td></tr>

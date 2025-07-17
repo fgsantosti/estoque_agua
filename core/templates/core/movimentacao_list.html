@@ -36,9 +36,9 @@
     <tr>
       <th>Data</th>
       <th>Produto</th>
-      <th>Tipo</th>
+      <th class="d-none d-md-table-cell">Tipo</th>
       <th>Quantidade</th>
-      <th>Usuário</th>
+      <th class="d-none d-md-table-cell">Usuário</th>
     </tr>
   </thead>
   <tbody>
@@ -46,9 +46,9 @@
     <tr>
       <td>{{ mov.data_movimentacao|date:'d/m/Y H:i' }}</td>
       <td>{{ mov.produto.nome }}</td>
-      <td>{{ mov.get_tipo_display }}</td>
+      <td class="d-none d-md-table-cell">{{ mov.get_tipo_display }}</td>
       <td>{{ mov.quantidade }}</td>
-      <td>{{ mov.usuario.username }}</td>
+      <td class="d-none d-md-table-cell">{{ mov.usuario.username }}</td>
     </tr>
     {% empty %}
     <tr><td colspan="5">Nenhuma movimentação encontrada.</td></tr>
