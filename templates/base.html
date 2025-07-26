@@ -112,6 +112,9 @@
                         <a class="nav-link {% if 'cliente' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'cliente_list' %}">
                             <i class="fas fa-users me-2"></i>Clientes
                         </a>
+                        <a class="nav-link {% if 'forma_pagamento' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'forma_pagamento_list' %}">
+                            <i class="fas fa-credit-card me-2"></i>Formas de Pagamento
+                        </a>
                     </nav>
                 </div>
                 <!-- Sidebar Mobile Offcanvas -->
@@ -139,6 +142,9 @@
                             </a>
                             <a class="nav-link {% if 'cliente' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'cliente_list' %}">
                                 <i class="fas fa-users me-2"></i>Clientes
+                            </a>
+                            <a class="nav-link {% if 'forma_pagamento' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'forma_pagamento_list' %}">
+                                <i class="fas fa-credit-card me-2"></i>Formas de Pagamento
                             </a>
                             <hr>
                             <div class="nav-item dropdown">

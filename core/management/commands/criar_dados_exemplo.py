@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from core.models import Categoria, Produto, Fornecedor, Cliente, MovimentacaoEstoque
+from core.models import Categoria, Produto, Fornecedor, Cliente, MovimentacaoEstoque, FormaPagamento
 from django.utils import timezone
 from decimal import Decimal
 
@@ -46,6 +46,54 @@ class Command(BaseCommand):
             )
             if created:
                 self.stdout.write(f'Categoria criada: {categoria.nome}')
+
+        # Criar formas de pagamento
+        formas_pagamento_data = [
+            {
+                'nome': 'À Vista',
+                'descricao': 'Pagamento à vista (dinheiro, PIX, débito)',
+                'prazo_recebimento': 0,
+                'ativo': True
+            },
+            {
+                'nome': 'Cartão de Crédito',
+                'descricao': 'Pagamento via cartão de crédito',
+                'prazo_recebimento': 30,
+                'ativo': True
+            },
+            {
+                'nome': 'Boleto 15 dias',
+                'descricao': 'Pagamento via boleto bancário com vencimento em 15 dias',
+                'prazo_recebimento': 15,
+                'ativo': True
+            },
+            {
+                'nome': 'Boleto 30 dias',
+                'descricao': 'Pagamento via boleto bancário com vencimento em 30 dias',
+                'prazo_recebimento': 30,
+                'ativo': True
+            },
+            {
+                'nome': 'Crediário 60 dias',
+                'descricao': 'Pagamento parcelado com prazo de 60 dias',
+                'prazo_recebimento': 60,
+                'ativo': True
+            },
+            {
+                'nome': 'Transferência Bancária',
+                'descricao': 'Pagamento via transferência bancária',
+                'prazo_recebimento': 1,
+                'ativo': True
+            }
+        ]
+
+        for forma_data in formas_pagamento_data:
+            forma_pagamento, created = FormaPagamento.objects.get_or_create(
+                nome=forma_data['nome'],
+                defaults=forma_data
+            )
+            if created:
+                self.stdout.write(f'Forma de pagamento criada: {forma_pagamento.nome}')
 
         # Criar fornecedores
         fornecedores_data = [
@@ -211,13 +259,20 @@ class Command(BaseCommand):
 
         # Criar algumas movimentações de exemplo
         produtos = Produto.objects.all()[:3]
-        for produto in produtos:
-            # Movimentação de saída
+        forma_pagamento_avista = FormaPagamento.objects.get(nome='À Vista')
+        forma_pagamento_cartao = FormaPagamento.objects.get(nome='Cartão de Crédito')
+        
+        for i, produto in enumerate(produtos):
+            # Movimentação de saída com forma de pagamento alternada
+            forma_pagamento = forma_pagamento_avista if i % 2 == 0 else forma_pagamento_cartao
+            
             MovimentacaoEstoque.objects.create(
                 produto=produto,
                 tipo='saida',
                 quantidade=10,
-                observacao='Venda para cliente',
+                preco_unitario=produto.preco_venda,
+                forma_pagamento=forma_pagamento,
+                observacao=f'Venda para cliente - {forma_pagamento.nome}',
                 usuario=admin_user
             )
             # Atualizar estoque
@@ -232,6 +287,7 @@ class Command(BaseCommand):
                 '\n   Usuário: usuario / usuario123'
                 '\n\n📊 DADOS CRIADOS:'
                 f'\n   • {Categoria.objects.count()} Categorias'
+                f'\n   • {FormaPagamento.objects.count()} Formas de Pagamento'
                 f'\n   • {Produto.objects.count()} Produtos'
                 f'\n   • {Fornecedor.objects.count()} Fornecedores'
                 f'\n   • {Cliente.objects.count()} Clientes'

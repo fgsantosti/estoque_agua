@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Categoria, Produto, MovimentacaoEstoque, Fornecedor, Cliente
+from .models import Categoria, Produto, MovimentacaoEstoque, Fornecedor, Cliente, FormaPagamento
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
@@ -15,8 +15,8 @@ class ProdutoAdmin(admin.ModelAdmin):
 
 @admin.register(MovimentacaoEstoque)
 class MovimentacaoEstoqueAdmin(admin.ModelAdmin):
-    list_display = ['produto', 'tipo', 'quantidade', 'usuario', 'data_movimentacao']
-    list_filter = ['tipo', 'data_movimentacao']
+    list_display = ['produto', 'tipo', 'quantidade', 'forma_pagamento', 'usuario', 'data_movimentacao']
+    list_filter = ['tipo', 'forma_pagamento', 'data_movimentacao']
     search_fields = ['produto__nome']
     readonly_fields = ['data_movimentacao']
 
@@ -31,3 +31,10 @@ class ClienteAdmin(admin.ModelAdmin):
     list_display = ['nome', 'cpf_cnpj', 'telefone', 'email', 'ativo']
     list_filter = ['ativo']
     search_fields = ['nome', 'cpf_cnpj']
+
+@admin.register(FormaPagamento)
+class FormaPagamentoAdmin(admin.ModelAdmin):
+    list_display = ['nome', 'prazo_recebimento', 'ativo', 'data_criacao']
+    list_filter = ['ativo', 'prazo_recebimento']
+    search_fields = ['nome']
+    list_editable = ['ativo']

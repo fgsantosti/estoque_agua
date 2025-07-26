@@ -46,6 +46,13 @@ class MovimentacaoEstoque(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     quantidade = models.IntegerField()
     preco_unitario = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    forma_pagamento = models.ForeignKey(
+        'FormaPagamento', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        help_text='Forma de pagamento utilizada (apenas para saídas/vendas)'
+    )
     observacao = models.TextField(blank=True)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     data_movimentacao = models.DateTimeField(default=timezone.now)
@@ -87,3 +94,21 @@ class Cliente(models.Model):
 
     def __str__(self):
         return self.nome
+
+class FormaPagamento(models.Model):
+    nome = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(blank=True)
+    ativo = models.BooleanField(default=True)
+    prazo_recebimento = models.IntegerField(
+        default=0, 
+        help_text='Prazo em dias para recebimento (0 = à vista)'
+    )
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nome
+
+    class Meta:
+        verbose_name = 'Forma de Pagamento'
+        verbose_name_plural = 'Formas de Pagamento'
+        ordering = ['nome']

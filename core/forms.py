@@ -1,7 +1,7 @@
 from django import forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column
-from .models import Produto, MovimentacaoEstoque, Fornecedor, Cliente, Categoria
+from .models import Produto, MovimentacaoEstoque, Fornecedor, Cliente, Categoria, FormaPagamento
 
 class ProdutoForm(forms.ModelForm):
     class Meta:
@@ -47,23 +47,9 @@ class ProdutoForm(forms.ModelForm):
         )
 
 class MovimentacaoEstoqueForm(forms.ModelForm):
-    data_movimentacao = forms.DateTimeField(
-        label='Data da Movimentação',
-        widget=forms.DateTimeInput(
-            attrs={
-                'class': 'form-control',
-                'type': 'datetime-local'
-            },
-            format='%Y-%m-%dT%H:%M'
-        ),
-        input_formats=['%Y-%m-%dT%H:%M'],
-        required=False,
-        help_text='Deixe em branco para usar data/hora atual'
-    )
-
     class Meta:
         model = MovimentacaoEstoque
-        fields = ['produto', 'tipo', 'quantidade', 'preco_unitario', 'data_movimentacao', 'observacao']
+        fields = ['produto', 'tipo', 'quantidade', 'preco_unitario', 'forma_pagamento', 'observacao']
         widgets = {
             'quantidade': forms.NumberInput(attrs={'class': 'form-control'}),
             'preco_unitario': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
@@ -82,19 +68,12 @@ class MovimentacaoEstoqueForm(forms.ModelForm):
             ),
             Row(
                 Column('preco_unitario', css_class='form-group col-md-6 mb-0'),
-                Column('data_movimentacao', css_class='form-group col-md-6 mb-0'),
+                Column('forma_pagamento', css_class='form-group col-md-6 mb-0'),
                 css_class='form-row'
             ),
             'observacao',
             Submit('submit', 'Registrar Movimentação', css_class='btn btn-success')
         )
-
-    def clean_data_movimentacao(self):
-        data = self.cleaned_data.get('data_movimentacao')
-        if not data:
-            from django.utils import timezone
-            return timezone.now()
-        return data
 
 class FornecedorForm(forms.ModelForm):
     class Meta:
@@ -138,48 +117,25 @@ class CategoriaForm(forms.ModelForm):
         self.helper.form_method = 'post'
         self.helper.add_input(Submit('submit', 'Salvar'))
 
-class MovimentacaoFiltroForm(forms.Form):
-    data_inicio = forms.DateField(
-        label='Data Início',
-        widget=forms.DateInput(
-            attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }
-        ),
-        required=False
-    )
-    data_fim = forms.DateField(
-        label='Data Fim',
-        widget=forms.DateInput(
-            attrs={
-                'class': 'form-control',
-                'type': 'date'
-            }
-        ),
-        required=False
-    )
-    produto = forms.ModelChoiceField(
-        queryset=None,
-        label='Produto',
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=False,
-        empty_label='Todos os produtos'
-    )
-    tipo = forms.ChoiceField(
-        choices=[('', 'Todos os tipos')] + MovimentacaoEstoque.TIPO_CHOICES,
-        label='Tipo',
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        required=False
-    )
+class FormaPagamentoForm(forms.ModelForm):
+    class Meta:
+        model = FormaPagamento
+        fields = ['nome', 'descricao', 'prazo_recebimento', 'ativo']
+        widgets = {
+            'descricao': forms.Textarea(attrs={'rows': 3}),
+            'prazo_recebimento': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        from .models import Produto
-        self.fields['produto'].queryset = Produto.objects.filter(ativo=True).order_by('nome')
-        # Define data padrão para últimos 30 dias se não informado
-        from datetime import date, timedelta
-        if not self.data.get('data_fim'):
-            self.fields['data_fim'].initial = date.today()
-        if not self.data.get('data_inicio'):
-            self.fields['data_inicio'].initial = date.today() - timedelta(days=30)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            'nome',
+            'descricao',
+            Row(
+                Column('prazo_recebimento', css_class='form-group col-md-6 mb-0'),
+                Column('ativo', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            Submit('submit', 'Salvar', css_class='btn btn-primary')
+        )
