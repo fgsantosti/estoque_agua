@@ -3,11 +3,30 @@ from django.contrib.auth.models import User
 from core.models import Categoria, Produto, Fornecedor, Cliente, MovimentacaoEstoque, FormaPagamento
 from django.utils import timezone
 from decimal import Decimal
+import random
 
 class Command(BaseCommand):
     help = 'Cria dados de exemplo para o sistema de estoque de água'
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--clear',
+            action='store_true',
+            help='Limpa todos os dados existentes antes de criar novos',
+        )
+
     def handle(self, *args, **options):
+        if options['clear']:
+            self.stdout.write('Limpando dados existentes...')
+            MovimentacaoEstoque.objects.all().delete()
+            Produto.objects.all().delete()
+            Cliente.objects.all().delete()
+            Fornecedor.objects.all().delete()
+            FormaPagamento.objects.all().delete()
+            Categoria.objects.all().delete()
+            User.objects.filter(is_superuser=False).delete()
+            self.stdout.write(self.style.WARNING('Dados existentes removidos!'))
+
         self.stdout.write('Criando dados de exemplo...')
 
         # Criar superusuário se não existir
@@ -32,11 +51,12 @@ class Command(BaseCommand):
 
         # Criar categorias
         categorias_data = [
-            {'nome': 'Água Mineral', 'descricao': 'Águas minerais em diversos formatos'},
-            {'nome': 'Água Alcalina', 'descricao': 'Águas com pH alcalino'},
-            {'nome': 'Água com Gás', 'descricao': 'Águas gaseificadas'},
-            {'nome': 'Água Saborizada', 'descricao': 'Águas com sabores diversos'},
-            {'nome': 'Galões', 'descricao': 'Galões de 20 litros'},
+            {'nome': 'Água Mineral', 'descricao': 'Águas minerais naturais em diversos formatos'},
+            {'nome': 'Água Alcalina', 'descricao': 'Águas com pH alcalino para melhor hidratação'},
+            {'nome': 'Água com Gás', 'descricao': 'Águas gaseificadas naturalmente ou artificialmente'},
+            {'nome': 'Água Saborizada', 'descricao': 'Águas com sabores naturais diversos'},
+            {'nome': 'Galões', 'descricao': 'Galões de 20 litros para uso doméstico e comercial'},
+            {'nome': 'Água Premium', 'descricao': 'Águas premium de fontes especiais'},
         ]
 
         for cat_data in categorias_data:
@@ -110,6 +130,13 @@ class Command(BaseCommand):
                 'telefone': '(11) 8765-4321',
                 'email': 'vendas@aguapura.com.br',
                 'endereco': 'Av. Água Limpa, 456 - São Paulo/SP'
+            },
+            {
+                'nome': 'Fonte Natural Distribuidora',
+                'cnpj': '55.444.333/0001-22',
+                'telefone': '(11) 5555-4444',
+                'email': 'comercial@fontenatural.com.br',
+                'endereco': 'Estrada da Serra, 789 - Mogi das Cruzes/SP'
             }
         ]
 
@@ -143,6 +170,20 @@ class Command(BaseCommand):
                 'telefone': '(11) 7777-9999',
                 'email': 'contato@abc.com.br',
                 'endereco': 'Av. Comercial, 789 - São Paulo/SP'
+            },
+            {
+                'nome': 'Carlos Oliveira',
+                'cpf_cnpj': '456.789.123-00',
+                'telefone': '(11) 6666-3333',
+                'email': 'carlos@email.com',
+                'endereco': 'Rua C, 321 - São Paulo/SP'
+            },
+            {
+                'nome': 'Restaurante Bom Sabor',
+                'cpf_cnpj': '22.333.444/0001-55',
+                'telefone': '(11) 5555-2222',
+                'email': 'pedidos@bomsabor.com.br',
+                'endereco': 'Av. Central, 654 - São Paulo/SP'
             }
         ]
 
@@ -218,12 +259,42 @@ class Command(BaseCommand):
             },
             {
                 'nome': 'Água Mineral Premium 750ml',
-                'categoria': 'Água Mineral',
-                'codigo': 'AM-750ML-007',
+                'categoria': 'Água Premium',
+                'codigo': 'AP-750ML-007',
                 'preco_venda': Decimal('6.80'),
                 'preco_custo': Decimal('4.20'),
                 'estoque_minimo': 20,
                 'estoque_atual': 15,  # Estoque baixo para demonstração
+                'unidade_medida': 'UN'
+            },
+            {
+                'nome': 'Água Alcalina pH 10 - 1L',
+                'categoria': 'Água Alcalina',
+                'codigo': 'AA-1000ML-008',
+                'preco_venda': Decimal('5.90'),
+                'preco_custo': Decimal('3.50'),
+                'estoque_minimo': 20,
+                'estoque_atual': 42,
+                'unidade_medida': 'UN'
+            },
+            {
+                'nome': 'Água com Gás Natural 500ml',
+                'categoria': 'Água com Gás',
+                'codigo': 'AG-500ML-009',
+                'preco_venda': Decimal('4.20'),
+                'preco_custo': Decimal('2.80'),
+                'estoque_minimo': 25,
+                'estoque_atual': 18,  # Estoque baixo
+                'unidade_medida': 'UN'
+            },
+            {
+                'nome': 'Água Saborizada Coco 350ml',
+                'categoria': 'Água Saborizada',
+                'codigo': 'AS-350ML-010',
+                'preco_venda': Decimal('3.90'),
+                'preco_custo': Decimal('2.40'),
+                'estoque_minimo': 15,
+                'estoque_atual': 33,
                 'unidade_medida': 'UN'
             }
         ]
@@ -258,25 +329,46 @@ class Command(BaseCommand):
                 )
 
         # Criar algumas movimentações de exemplo
-        produtos = Produto.objects.all()[:3]
+        produtos = Produto.objects.all()
         forma_pagamento_avista = FormaPagamento.objects.get(nome='À Vista')
         forma_pagamento_cartao = FormaPagamento.objects.get(nome='Cartão de Crédito')
+        forma_pagamento_boleto = FormaPagamento.objects.get(nome='Boleto 30 dias')
         
-        for i, produto in enumerate(produtos):
-            # Movimentação de saída com forma de pagamento alternada
-            forma_pagamento = forma_pagamento_avista if i % 2 == 0 else forma_pagamento_cartao
+        # Criar movimentações de saída variadas
+        formas_pagamento = [forma_pagamento_avista, forma_pagamento_cartao, forma_pagamento_boleto]
+        
+        for i, produto in enumerate(produtos[:5]):  # Primeiros 5 produtos
+            # Alternar entre as formas de pagamento
+            forma_pagamento = formas_pagamento[i % len(formas_pagamento)]
+            quantidade_venda = random.randint(3, 15)
             
             MovimentacaoEstoque.objects.create(
                 produto=produto,
                 tipo='saida',
-                quantidade=10,
+                quantidade=quantidade_venda,
                 preco_unitario=produto.preco_venda,
                 forma_pagamento=forma_pagamento,
                 observacao=f'Venda para cliente - {forma_pagamento.nome}',
                 usuario=admin_user
             )
             # Atualizar estoque
-            produto.estoque_atual -= 10
+            produto.estoque_atual -= quantidade_venda
+            produto.save()
+
+        # Criar algumas movimentações de ajuste
+        for produto in produtos[5:8]:  # Próximos 3 produtos
+            quantidade_ajuste = random.randint(-5, 10)
+            MovimentacaoEstoque.objects.create(
+                produto=produto,
+                tipo='ajuste',
+                quantidade=quantidade_ajuste,
+                observacao='Ajuste de estoque - inventário',
+                usuario=admin_user
+            )
+            # Atualizar estoque
+            produto.estoque_atual += quantidade_ajuste
+            if produto.estoque_atual < 0:
+                produto.estoque_atual = 0
             produto.save()
 
         self.stdout.write(
@@ -292,6 +384,10 @@ class Command(BaseCommand):
                 f'\n   • {Fornecedor.objects.count()} Fornecedores'
                 f'\n   • {Cliente.objects.count()} Clientes'
                 f'\n   • {MovimentacaoEstoque.objects.count()} Movimentações'
-                '\n\n🚀 Sistema pronto para uso!'
+                '\n\n� DICAS:'
+                '\n   • Use --clear para limpar dados existentes'
+                '\n   • Produtos com estoque baixo aparecem destacados'
+                '\n   • Movimentações incluem vendas, entradas e ajustes'
+                '\n\n�🚀 Sistema pronto para uso!'
             )
         )

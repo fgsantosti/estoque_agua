@@ -123,6 +123,22 @@ def produto_edit(request, pk):
     })
 
 @login_required
+def produto_delete(request, pk):
+    produto = get_object_or_404(Produto, pk=pk)
+    
+    if request.method == 'POST':
+        nome_produto = produto.nome
+        produto.delete()
+        messages.success(request, f'Produto {nome_produto} deletado com sucesso!')
+        return redirect('produto_list')
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': produto,
+        'title': f'Deletar Produto: {produto.nome}',
+        'cancel_url': 'produto_list'
+    })
+
+@login_required
 def movimentacao_list(request):
     movimentacoes = MovimentacaoEstoque.objects.select_related('produto', 'usuario').all()
 
@@ -223,6 +239,35 @@ def fornecedor_create(request):
     return render(request, 'core/fornecedor_form.html', {'form': form, 'title': 'Novo Fornecedor'})
 
 @login_required
+def fornecedor_edit(request, pk):
+    fornecedor = get_object_or_404(Fornecedor, pk=pk)
+    if request.method == 'POST':
+        form = FornecedorForm(request.POST, instance=fornecedor)
+        if form.is_valid():
+            fornecedor = form.save()
+            messages.success(request, f'Fornecedor {fornecedor.nome} atualizado com sucesso!')
+            return redirect('fornecedor_list')
+    else:
+        form = FornecedorForm(instance=fornecedor)
+    
+    return render(request, 'core/fornecedor_form.html', {'form': form, 'title': f'Editar Fornecedor: {fornecedor.nome}'})
+
+@login_required  
+def fornecedor_delete(request, pk):
+    fornecedor = get_object_or_404(Fornecedor, pk=pk)
+    if request.method == 'POST':
+        nome = fornecedor.nome
+        fornecedor.delete()
+        messages.success(request, f'Fornecedor {nome} deletado com sucesso!')
+        return redirect('fornecedor_list')
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': fornecedor,
+        'title': f'Deletar Fornecedor: {fornecedor.nome}',
+        'cancel_url': 'fornecedor_list'
+    })
+
+@login_required
 def cliente_list(request):
     clientes = Cliente.objects.filter(ativo=True)
 
@@ -252,6 +297,35 @@ def cliente_create(request):
     return render(request, 'core/cliente_form.html', {'form': form, 'title': 'Novo Cliente'})
 
 @login_required
+def cliente_edit(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            cliente = form.save()
+            messages.success(request, f'Cliente {cliente.nome} atualizado com sucesso!')
+            return redirect('cliente_list')
+    else:
+        form = ClienteForm(instance=cliente)
+    
+    return render(request, 'core/cliente_form.html', {'form': form, 'title': f'Editar Cliente: {cliente.nome}'})
+
+@login_required  
+def cliente_delete(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        nome = cliente.nome
+        cliente.delete()
+        messages.success(request, f'Cliente {nome} deletado com sucesso!')
+        return redirect('cliente_list')
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': cliente,
+        'title': f'Deletar Cliente: {cliente.nome}',
+        'cancel_url': 'cliente_list'
+    })
+
+@login_required
 def categoria_list(request):
     categorias = Categoria.objects.all()
     return render(request, 'core/categoria_list.html', {'categorias': categorias})
@@ -270,6 +344,35 @@ def categoria_create(request):
     return render(request, 'core/categoria_form.html', {'form': form, 'title': 'Nova Categoria'})
 
 @login_required
+def categoria_edit(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+    if request.method == 'POST':
+        form = CategoriaForm(request.POST, instance=categoria)
+        if form.is_valid():
+            categoria = form.save()
+            messages.success(request, f'Categoria {categoria.nome} atualizada com sucesso!')
+            return redirect('categoria_list')
+    else:
+        form = CategoriaForm(instance=categoria)
+    
+    return render(request, 'core/categoria_form.html', {'form': form, 'title': f'Editar Categoria: {categoria.nome}'})
+
+@login_required  
+def categoria_delete(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+    if request.method == 'POST':
+        nome = categoria.nome
+        categoria.delete()
+        messages.success(request, f'Categoria {nome} deletada com sucesso!')
+        return redirect('categoria_list')
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': categoria,
+        'title': f'Deletar Categoria: {categoria.nome}',
+        'cancel_url': 'categoria_list'
+    })
+
+@login_required
 def forma_pagamento_list(request):
     formas_pagamento = FormaPagamento.objects.all()
     return render(request, 'core/forma_pagamento_list.html', {'formas_pagamento': formas_pagamento})
@@ -286,3 +389,32 @@ def forma_pagamento_create(request):
         form = FormaPagamentoForm()
 
     return render(request, 'core/forma_pagamento_form.html', {'form': form, 'title': 'Nova Forma de Pagamento'})
+
+@login_required
+def forma_pagamento_edit(request, pk):
+    forma_pagamento = get_object_or_404(FormaPagamento, pk=pk)
+    if request.method == 'POST':
+        form = FormaPagamentoForm(request.POST, instance=forma_pagamento)
+        if form.is_valid():
+            forma_pagamento = form.save()
+            messages.success(request, f'Forma de pagamento {forma_pagamento.nome} atualizada com sucesso!')
+            return redirect('forma_pagamento_list')
+    else:
+        form = FormaPagamentoForm(instance=forma_pagamento)
+    
+    return render(request, 'core/forma_pagamento_form.html', {'form': form, 'title': f'Editar Forma de Pagamento: {forma_pagamento.nome}'})
+
+@login_required  
+def forma_pagamento_delete(request, pk):
+    forma_pagamento = get_object_or_404(FormaPagamento, pk=pk)
+    if request.method == 'POST':
+        nome = forma_pagamento.nome
+        forma_pagamento.delete()
+        messages.success(request, f'Forma de pagamento {nome} deletada com sucesso!')
+        return redirect('forma_pagamento_list')
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': forma_pagamento,
+        'title': f'Deletar Forma de Pagamento: {forma_pagamento.nome}',
+        'cancel_url': 'forma_pagamento_list'
+    })

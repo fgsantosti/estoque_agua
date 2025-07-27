@@ -1,15 +1,21 @@
 {% extends 'base.html' %}
-{% block title %}Confirmar Exclusão{% endblock %}
+{% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="container py-4">
   <div class="card">
     <div class="card-body">
-      <h4 class="mb-3">Confirmar exclusão de {{ type }}</h4>
+      <h4 class="mb-3">{{ title }}</h4>
       <p>Tem certeza que deseja excluir <strong>{{ object }}</strong>?</p>
+      <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        Esta ação não pode ser desfeita.
+      </div>
       <form method="post">
         {% csrf_token %}
-        <a href="{% url cancel_url %}" class="btn btn-secondary">Cancelar</a>
-        <button type="submit" class="btn btn-danger">Excluir</button>
+        <a href="{% url cancel_url %}" class="btn btn-secondary me-2">Cancelar</a>
+        <button type="submit" class="btn btn-danger">
+          <i class="fas fa-trash me-2"></i>Excluir
+        </button>
       </form>
     </div>
   </div>

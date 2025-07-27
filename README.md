@@ -11,6 +11,7 @@ Sistema completo de gerenciamento de estoque para distribuidoras de água, desen
 - 🏷️ **Categorização de Produtos**
 - 🚚 **Cadastro de Fornecedores**
 - 👥 **Cadastro de Clientes**
+- 💳 **Formas de Pagamento** com controle de prazo
 - ⚠️ **Alertas de Estoque Baixo**
 - 💰 **Controle de Preços** (Custo/Venda)
 - 📱 **Interface Responsiva** (Bootstrap 5)
@@ -97,14 +98,27 @@ Após iniciar o servidor:
 - **Login:** http://localhost:8000/accounts/login
 
 ## 📊 Dados de Exemplo
+O sistema vem com dados pré-configurados para demonstração:
 
-O sistema vem com dados pré-configurados:
+### 📈 Dados Criados Automaticamente:
+- **6 Categorias** de produtos (Água Mineral, Alcalina, com Gás, Saborizada, Galões, Premium)
+- **10 Produtos** diversos com preços e estoques variados
+- **3 Fornecedores** com dados completos
+- **5 Clientes** (pessoas físicas e jurídicas)
+- **6 Formas de Pagamento** (À Vista, Cartão, Boletos, etc.)
+- **18+ Movimentações** de entrada, saída e ajuste
 
-- **5 Categorias** de produtos
-- **7 Produtos** diversos (águas minerais, alcalinas, com gás, etc.)
-- **2 Fornecedores** de exemplo
-- **3 Clientes** (pessoa física e jurídica)
-- **10 Movimentações** de estoque
+### 🔑 Credenciais de Acesso:
+- **Administrador:** `admin` / `admin123`
+- **Usuário:** `usuario` / `usuario123`
+
+## 💳 Gerenciamento de Formas de Pagamento
+
+- Cadastro de diferentes formas de pagamento
+- Controle de prazo de recebimento (0 = à vista)
+- Vinculação com movimentações de saída/venda
+- Status ativo/inativo para cada forma
+- Relatórios por forma de pagamento
 
 ## 🎯 Principais Funcionalidades
 
@@ -167,12 +181,38 @@ estoque_agua/
 - Login obrigatório para todas as funcionalidades
 - Controle de permissões por usuário
 
-## 🧪 Testes
+## 🧪 Comandos de Gestão
 
+### Criação de Dados de Exemplo
+```bash
+# Criar dados de exemplo (mantém dados existentes)
+python manage.py criar_dados_exemplo
+
+# Limpar dados existentes e criar novos
+python manage.py criar_dados_exemplo --clear
+```
+
+### Testes do Sistema
 Execute os testes do sistema:
 
 ```bash
 python manage.py test
+```
+
+## 🔧 Comandos Úteis
+
+```bash
+# Verificar migrações pendentes
+python manage.py showmigrations
+
+# Criar superusuário
+python manage.py createsuperuser
+
+# Coletar arquivos estáticos
+python manage.py collectstatic
+
+# Shell interativo
+python manage.py shell
 ```
 
 ## 📄 Licença

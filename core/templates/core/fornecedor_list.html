@@ -3,7 +3,7 @@
 {% block title %}Fornecedores{% endblock %}
 {% block content %}
 <h2>Fornecedores</h2>
-<a href="{% url 'fornecedor_create' %}" class="btn btn-success mb-3">Novo Fornecedor</a>
+<a href="{% url 'fornecedor_create' %}" class="btn btn-primary mb-3">Novo Fornecedor</a>
 <form method="get" class="mb-3">
   <input type="text" name="search" value="{{ search|default_if_none:'' }}" class="form-control" placeholder="Buscar por nome ou CNPJ">
 </form>
@@ -24,8 +24,12 @@
       <td>{{ fornecedor.telefone }}</td>
       <td class="d-none d-md-table-cell">{{ fornecedor.email }}</td>
       <td>
-        <a href="{% url 'fornecedor_edit' fornecedor.pk %}" class="btn btn-sm btn-primary me-1">Editar</a>
-        <a href="{% url 'fornecedor_delete' fornecedor.pk %}" class="btn btn-sm btn-danger">Deletar</a>
+        <a href="{% url 'fornecedor_edit' fornecedor.pk %}" class="btn btn-sm btn-primary">
+          <i class="fas fa-edit"></i>
+        </a>
+        <a href="{% url 'fornecedor_delete' fornecedor.pk %}" class="btn btn-sm btn-danger">
+          <i class="fas fa-trash"></i>
+        </a>
       </td>
     </tr>
     {% empty %}
