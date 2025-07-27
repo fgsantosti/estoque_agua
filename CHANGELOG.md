@@ -2,8 +2,21 @@
 
 ## 🔄 Alterações Realizadas (27 de Julho de 2025)
 
-### 🎨 Padronização Visual
-- ✅ **Botões de Cadastro Unificados**: Todos os botões "Novo/Nova" agora usam a mesma cor azul (`btn btn-primary`)
+### 💰 Nova Funcionalidade: Valores e Resumos em Movimentações
+- ✅ **Colunas de Valor**: Adicionadas colunas "Valor Unit." e "Valor Total" na tabela de movimentações
+- ✅ **Resumo de Totais**: Card com estatísticas das movimentações filtradas:
+  - Total de movimentações encontradas
+  - Quantidade total de itens
+  - Valor total das movimentações
+- ✅ **Detalhamento por Tipo**: Quando não há filtro de tipo específico, mostra:
+  - Entradas: quantidade de movimentações, itens e valor total
+  - Saídas: quantidade de movimentações, itens e valor total  
+  - Ajustes: quantidade de movimentações, itens e valor total
+- ✅ **Indicação Visual**: Mostra quando filtros estão aplicados
+- ✅ **Responsividade**: Colunas de valor ocultas em telas menores (`d-none d-lg-table-cell`)
+
+### 🎨 Padronização Visual (Anterior)
+- ✅ **Botões de Cadastro Unificados**: Todos os botões "Novo/Nova" agora usem a mesma cor azul (`btn btn-primary`)
   - Categorias: `btn btn-success` → `btn btn-primary`
   - Clientes: `btn btn-success` → `btn btn-primary`
   - Fornecedores: `btn btn-success` → `btn btn-primary`
@@ -11,14 +24,14 @@
   - Movimentações: `btn btn-success` → `btn btn-primary`
   - Produtos: Mantido `btn btn-primary` (referência)
 
-### 📊 Dados de Exemplo Expandidos
+### 📊 Dados de Exemplo Expandidos (Anterior)
 - ✅ **Comando Melhorado**: `criar_dados_exemplo.py`
   - Nova opção `--clear` para limpar dados existentes
   - Dados expandidos e mais realísticos
   - Melhor distribuição de categorias e produtos
   - Movimentações mais variadas com diferentes formas de pagamento
 
-### 📈 Novos Dados Criados
+### 📈 Novos Dados Criados (Anterior)
 - **6 Categorias** (adicionada "Água Premium")
 - **10 Produtos** (3 produtos novos)
 - **3 Fornecedores** (1 fornecedor novo)
@@ -27,16 +40,21 @@
 - **18+ Movimentações** (movimentações mais variadas)
 
 ### 🛠️ Melhorias Técnicas
+- ✅ **Views Otimizadas**: 
+  - `movimentacao_list` com cálculos de totais
+  - `select_related` para melhor performance
+  - Cálculos eficientes de agregações
+- ✅ **Templates Melhorados**:
+  - Card responsivo para resumos
+  - Formatação monetária consistente
+  - Indicadores visuais por tipo de movimentação
 - ✅ **Validação Completa**: Todos os arquivos verificados e funcionando
-  - Models.py ✓
-  - Views.py ✓
-  - Forms.py ✓
-  - Admin.py ✓
-  - URLs.py ✓
-  - Templates ✓
-  - Migrações ✓
+  - Models.py ✓ (propriedade `valor_total` já existente)
+  - Views.py ✓ (cálculos de totais adicionados)
+  - Templates ✓ (interface de resumo implementada)
+  - Sistema validado sem erros ✓
 
-### 📚 Documentação Atualizada
+### 📚 Documentação Atualizada (Anterior)
 - ✅ **README.md** atualizado com:
   - Nova funcionalidade de Formas de Pagamento
   - Comandos de gestão expandidos
@@ -46,17 +64,21 @@
 
 ## 🎯 Arquivos Modificados
 
-### Templates
+### Novas Funcionalidades (Hoje)
+- `core/views.py` - Função `movimentacao_list` com cálculos de totais
+- `core/templates/core/movimentacao_list.html` - Interface com valores e resumos
+
+### Templates (Anterior)
 - `core/templates/core/categoria_list.html`
 - `core/templates/core/cliente_list.html`
 - `core/templates/core/fornecedor_list.html`
 - `core/templates/core/forma_pagamento_list.html`
 - `core/templates/core/movimentacao_list.html`
 
-### Comandos de Gestão
+### Comandos de Gestão (Anterior)
 - `core/management/commands/criar_dados_exemplo.py`
 
-### Documentação
+### Documentação (Anterior)
 - `README.md`
 
 ## ✅ Verificações Realizadas
@@ -65,6 +87,7 @@
 2. **Dados de Exemplo**: `python manage.py criar_dados_exemplo --clear` ✓
 3. **Consistência Visual**: Todos os botões padronizados ✓
 4. **Funcionalidades**: Todas as features funcionando ✓
+5. **Novos Recursos**: Valores e resumos em movimentações ✓
 
 ## 🚀 Status Final
 
@@ -72,9 +95,12 @@
 
 - Interface visual consistente
 - Dados de exemplo expandidos e realísticos
+- **NOVO**: Controle completo de valores em movimentações
+- **NOVO**: Resumos automáticos com totalizações
+- **NOVO**: Detalhamento por tipo de movimentação
 - Documentação completa e atualizada
 - Código validado e sem erros
 - Pronto para uso em produção ou desenvolvimento
 
 ---
-*Atualização realizada em 27 de julho de 2025*
+*Última atualização realizada em 27 de julho de 2025*

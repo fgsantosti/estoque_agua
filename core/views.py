@@ -140,7 +140,7 @@ def produto_delete(request, pk):
 
 @login_required
 def movimentacao_list(request):
-    movimentacoes = MovimentacaoEstoque.objects.select_related('produto', 'usuario').all()
+    movimentacoes = MovimentacaoEstoque.objects.select_related('produto', 'usuario', 'forma_pagamento').all()
 
     # Filtros
     tipo = request.GET.get('tipo')
@@ -160,6 +160,30 @@ def movimentacao_list(request):
     if data_fim:
         movimentacoes = movimentacoes.filter(data_movimentacao__date__lte=data_fim)
 
+    # Calcular totais das movimentações filtradas
+    total_quantidade = sum(mov.quantidade for mov in movimentacoes)
+    total_valor = sum(mov.valor_total for mov in movimentacoes if mov.preco_unitario)
+    total_movimentacoes = movimentacoes.count()
+    
+    # Calcular totais por tipo de movimentação
+    totais_por_tipo = {
+        'entrada': {
+            'quantidade': sum(mov.quantidade for mov in movimentacoes if mov.tipo == 'entrada'),
+            'valor': sum(mov.valor_total for mov in movimentacoes if mov.tipo == 'entrada' and mov.preco_unitario),
+            'count': movimentacoes.filter(tipo='entrada').count()
+        },
+        'saida': {
+            'quantidade': sum(mov.quantidade for mov in movimentacoes if mov.tipo == 'saida'),
+            'valor': sum(mov.valor_total for mov in movimentacoes if mov.tipo == 'saida' and mov.preco_unitario),
+            'count': movimentacoes.filter(tipo='saida').count()
+        },
+        'ajuste': {
+            'quantidade': sum(mov.quantidade for mov in movimentacoes if mov.tipo == 'ajuste'),
+            'valor': sum(mov.valor_total for mov in movimentacoes if mov.tipo == 'ajuste' and mov.preco_unitario),
+            'count': movimentacoes.filter(tipo='ajuste').count()
+        }
+    }
+
     # Paginação
     paginator = Paginator(movimentacoes, 20)
     page_number = request.GET.get('page')
@@ -174,6 +198,10 @@ def movimentacao_list(request):
         'produto_id': produto_id,
         'data_inicio': data_inicio,
         'data_fim': data_fim,
+        'total_quantidade': total_quantidade,
+        'total_valor': total_valor,
+        'total_movimentacoes': total_movimentacoes,
+        'totais_por_tipo': totais_por_tipo,
     }
 
     return render(request, 'core/movimentacao_list.html', context)

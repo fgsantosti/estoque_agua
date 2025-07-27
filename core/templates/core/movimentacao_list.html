@@ -31,6 +31,75 @@
     <button type="submit" class="btn btn-primary">Filtrar</button>
   </div>
 </form>
+
+<!-- Card com resumo dos totais -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h6 class="mb-0">
+      <i class="fas fa-chart-bar me-2"></i>Resumo das Movimentações
+      {% if tipo or produto_id or data_inicio or data_fim %}
+        <small class="text-muted">(Filtros aplicados)</small>
+      {% endif %}
+    </h6>
+  </div>
+  <div class="card-body">
+    <div class="row text-center mb-3">
+      <div class="col-md-4">
+        <div class="d-flex align-items-center justify-content-center">
+          <i class="fas fa-list-ol text-primary me-2"></i>
+          <div>
+            <h5 class="mb-0">{{ total_movimentacoes }}</h5>
+            <small class="text-muted">Total de Movimentações</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex align-items-center justify-content-center">
+          <i class="fas fa-cubes text-info me-2"></i>
+          <div>
+            <h5 class="mb-0">{{ total_quantidade }}</h5>
+            <small class="text-muted">Quantidade Total</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="d-flex align-items-center justify-content-center">
+          <i class="fas fa-dollar-sign text-success me-2"></i>
+          <div>
+            <h5 class="mb-0">R$ {{ total_valor|floatformat:2 }}</h5>
+            <small class="text-muted">Valor Total</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Detalhes por tipo (apenas se não houver filtro de tipo específico) -->
+    {% if not tipo and total_movimentacoes > 0 %}
+    <hr>
+    <div class="row text-center">
+      <div class="col-md-4">
+        <div class="text-success">
+          <i class="fas fa-arrow-up me-1"></i><strong>Entradas</strong><br>
+          <small>{{ totais_por_tipo.entrada.count }} mov. | {{ totais_por_tipo.entrada.quantidade }} itens | R$ {{ totais_por_tipo.entrada.valor|floatformat:2 }}</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-danger">
+          <i class="fas fa-arrow-down me-1"></i><strong>Saídas</strong><br>
+          <small>{{ totais_por_tipo.saida.count }} mov. | {{ totais_por_tipo.saida.quantidade }} itens | R$ {{ totais_por_tipo.saida.valor|floatformat:2 }}</small>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="text-warning">
+          <i class="fas fa-adjust me-1"></i><strong>Ajustes</strong><br>
+          <small>{{ totais_por_tipo.ajuste.count }} mov. | {{ totais_por_tipo.ajuste.quantidade }} itens | R$ {{ totais_por_tipo.ajuste.valor|floatformat:2 }}</small>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
 <table class="table table-striped">
   <thead>
     <tr>
@@ -38,6 +107,8 @@
       <th>Produto</th>
       <th class="d-none d-md-table-cell">Tipo</th>
       <th>Quantidade</th>
+      <th class="d-none d-lg-table-cell">Valor Unit.</th>
+      <th class="d-none d-lg-table-cell">Valor Total</th>
       <th class="d-none d-md-table-cell">Forma Pagamento</th>
       <th class="d-none d-md-table-cell">Usuário</th>
     </tr>
@@ -49,6 +120,20 @@
       <td>{{ mov.produto.nome }}</td>
       <td class="d-none d-md-table-cell">{{ mov.get_tipo_display }}</td>
       <td>{{ mov.quantidade }}</td>
+      <td class="d-none d-lg-table-cell">
+        {% if mov.preco_unitario %}
+          R$ {{ mov.preco_unitario|floatformat:2 }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td class="d-none d-lg-table-cell">
+        {% if mov.preco_unitario %}
+          R$ {{ mov.valor_total|floatformat:2 }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
       <td class="d-none d-md-table-cell">
         {% if mov.forma_pagamento and mov.tipo == 'saida' %}
           {{ mov.forma_pagamento.nome }}
@@ -59,7 +144,7 @@
       <td class="d-none d-md-table-cell">{{ mov.usuario.username }}</td>
     </tr>
     {% empty %}
-    <tr><td colspan="6">Nenhuma movimentação encontrada.</td></tr>
+    <tr><td colspan="8">Nenhuma movimentação encontrada.</td></tr>
     {% endfor %}
   </tbody>
 </table>
