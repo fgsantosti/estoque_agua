@@ -1,0 +1,274 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-cash-register me-2"></i>{{ title }}</h2>
+    <a href="{% url 'venda_list' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Voltar
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate id="venda-form">
+            {% csrf_token %}
+            
+            <!-- Dados da Venda -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    {{ venda_form.cliente|as_crispy_field }}
+                </div>
+                <div class="col-md-6">
+                    {{ venda_form.forma_pagamento|as_crispy_field }}
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                {{ venda_form.observacao|as_crispy_field }}
+            </div>
+            
+            <hr>
+            
+            <!-- Itens da Venda -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5><i class="fas fa-shopping-cart me-2"></i>Itens da Venda</h5>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="add-item">
+                    <i class="fas fa-plus me-2"></i>Adicionar Item
+                </button>
+            </div>
+            
+            {{ formset.management_form }}
+            
+            <div class="table-responsive">
+                <table class="table table-striped" id="itens-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th width="40%">Produto</th>
+                            <th width="15%">Qtd.</th>
+                            <th width="20%">Preço Unit.</th>
+                            <th width="20%">Total</th>
+                            <th width="5%">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in formset %}
+                        <tr class="item-row" {% if form.non_field_errors %}style="background-color: #fff3cd;"{% endif %}>
+                            <td>
+                                {{ form.id }}
+                                {{ form.produto }}
+                                {{ form.produto.errors }}
+                            </td>
+                            <td>
+                                {{ form.quantidade }}
+                                {{ form.quantidade.errors }}
+                            </td>
+                            <td>
+                                {{ form.preco_unitario }}
+                                {{ form.preco_unitario.errors }}
+                            </td>
+                            <td class="valor-total fw-bold">R$ 0,00</td>
+                            <td>
+                                {{ form.DELETE }}
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-item" title="Remover">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-info">
+                        <tr>
+                            <th colspan="3" class="text-end">Total Geral:</th>
+                            <th id="total-geral" class="fw-bold fs-5">R$ 0,00</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Dica:</strong> Selecione um produto para que o preço seja preenchido automaticamente.
+            </div>
+            
+            <hr>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-success btn-lg me-2" id="finalizar-venda">
+                    <i class="fas fa-cash-register me-2"></i>Finalizar Venda
+                </button>
+                <a href="{% url 'venda_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let formNum = {{ formset.total_form_count }};
+    
+    // Função para atualizar preço quando selecionar produto
+    window.updatePrice = function(select) {
+        const produtoId = select.value;
+        const row = select.closest('tr');
+        const precoInput = row.querySelector('input[name$="preco_unitario"]');
+        
+        if (produtoId) {
+            fetch(`/api/produto/${produtoId}/preco/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Produto não encontrado');
+                        return;
+                    }
+                    precoInput.value = data.preco_venda.toFixed(2);
+                    updateRowTotal(row);
+                })
+                .catch(error => {
+                    console.error('Erro ao buscar preço:', error);
+                });
+        } else {
+            precoInput.value = '';
+            updateRowTotal(row);
+        }
+    };
+    
+    // Função para atualizar total da linha
+    function updateRowTotal(row) {
+        const quantidadeInput = row.querySelector('input[name$="quantidade"]');
+        const precoInput = row.querySelector('input[name$="preco_unitario"]');
+        const totalCell = row.querySelector('.valor-total');
+        
+        const quantidade = parseFloat(quantidadeInput.value) || 0;
+        const preco = parseFloat(precoInput.value) || 0;
+        const total = quantidade * preco;
+        
+        totalCell.textContent = `R$ ${total.toFixed(2)}`;
+        updateTotalGeral();
+    }
+    
+    // Função para atualizar total geral
+    function updateTotalGeral() {
+        let totalGeral = 0;
+        
+        document.querySelectorAll('.item-row').forEach(row => {
+            const deleteCheckbox = row.querySelector('input[name$="DELETE"]');
+            if (!deleteCheckbox.checked) {
+                const quantidade = parseFloat(row.querySelector('input[name$="quantidade"]').value) || 0;
+                const preco = parseFloat(row.querySelector('input[name$="preco_unitario"]').value) || 0;
+                totalGeral += quantidade * preco;
+            }
+        });
+        
+        document.getElementById('total-geral').textContent = `R$ ${totalGeral.toFixed(2)}`;
+        
+        // Habilitar/desabilitar botão de finalizar
+        const finalizarBtn = document.getElementById('finalizar-venda');
+        finalizarBtn.disabled = totalGeral <= 0;
+    }
+    
+    // Event listener para mudanças nos campos
+    document.addEventListener('change', function(e) {
+        if (e.target.matches('input[name$="quantidade"], input[name$="preco_unitario"]')) {
+            updateRowTotal(e.target.closest('tr'));
+        }
+        if (e.target.matches('input[name$="DELETE"]')) {
+            updateTotalGeral();
+        }
+    });
+    
+    // Event listener para adicionar item
+    document.getElementById('add-item').addEventListener('click', function() {
+        const tbody = document.querySelector('#itens-table tbody');
+        const emptyRows = tbody.querySelectorAll('.item-row');
+        let emptyRow = null;
+        
+        // Procurar linha vazia
+        for (let row of emptyRows) {
+            const produtoSelect = row.querySelector('select[name$="produto"]');
+            if (!produtoSelect.value) {
+                emptyRow = row;
+                break;
+            }
+        }
+        
+        if (!emptyRow) {
+            // Clonar última linha
+            const lastRow = tbody.lastElementChild;
+            const newRow = lastRow.cloneNode(true);
+            
+            // Atualizar índices dos campos
+            newRow.querySelectorAll('input, select').forEach(field => {
+                const name = field.name.replace(/\d+/, formNum);
+                const id = field.id.replace(/\d+/, formNum);
+                field.name = name;
+                field.id = id;
+                field.value = '';
+                if (field.type === 'checkbox') field.checked = false;
+            });
+            
+            // Limpar total da linha
+            newRow.querySelector('.valor-total').textContent = 'R$ 0,00';
+            
+            tbody.appendChild(newRow);
+            formNum++;
+            
+            // Atualizar total_form_count
+            const totalFormsInput = document.querySelector('input[name$="TOTAL_FORMS"]');
+            totalFormsInput.value = formNum;
+        }
+    });
+    
+    // Event listener para remover item
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-item')) {
+            const row = e.target.closest('tr');
+            const deleteCheckbox = row.querySelector('input[name$="DELETE"]');
+            
+            if (deleteCheckbox) {
+                deleteCheckbox.checked = true;
+                row.style.display = 'none';
+                updateTotalGeral();
+            }
+        }
+    });
+    
+    // Inicializar cálculos
+    document.querySelectorAll('.item-row').forEach(updateRowTotal);
+    
+    // Validação do formulário
+    document.getElementById('venda-form').addEventListener('submit', function(e) {
+        const totalGeral = parseFloat(document.getElementById('total-geral').textContent.replace('R$ ', '').replace(',', '.'));
+        
+        if (totalGeral <= 0) {
+            e.preventDefault();
+            alert('Adicione pelo menos um item à venda!');
+            return false;
+        }
+        
+        // Verificar se tem pelo menos um produto selecionado
+        let temItem = false;
+        document.querySelectorAll('.item-row').forEach(row => {
+            const deleteCheckbox = row.querySelector('input[name$="DELETE"]');
+            const produtoSelect = row.querySelector('select[name$="produto"]');
+            
+            if (!deleteCheckbox.checked && produtoSelect.value) {
+                temItem = true;
+            }
+        });
+        
+        if (!temItem) {
+            e.preventDefault();
+            alert('Selecione pelo menos um produto!');
+            return false;
+        }
+    });
+});
+</script>
+
+{% endblock %}

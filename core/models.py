@@ -112,3 +112,74 @@ class FormaPagamento(models.Model):
         verbose_name = 'Forma de Pagamento'
         verbose_name_plural = 'Formas de Pagamento'
         ordering = ['nome']
+
+
+class Venda(models.Model):
+    STATUS_CHOICES = [
+        ('aberta', 'Aberta'),
+        ('finalizada', 'Finalizada'),
+        ('cancelada', 'Cancelada')
+    ]
+    
+    numero_venda = models.CharField(max_length=20, unique=True, editable=False)
+    cliente = models.ForeignKey('Cliente', on_delete=models.SET_NULL, null=True, blank=True)
+    forma_pagamento = models.ForeignKey('FormaPagamento', on_delete=models.SET_NULL, null=True)
+    data_venda = models.DateTimeField(default=timezone.now)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    observacao = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='aberta')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_atualizacao = models.DateTimeField(auto_now=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.numero_venda:
+            # Gerar número sequencial da venda
+            ultimo_numero = Venda.objects.count() + 1
+            self.numero_venda = f"VD{ultimo_numero:06d}"
+        super().save(*args, **kwargs)
+    
+    @property
+    def valor_total(self):
+        return sum(item.valor_total for item in self.itens.all())
+    
+    @property
+    def quantidade_total_itens(self):
+        return sum(item.quantidade for item in self.itens.all())
+    
+    @property
+    def total_itens(self):
+        return self.itens.count()
+    
+    @property
+    def data_vencimento(self):
+        """Calcula a data de vencimento baseada no prazo da forma de pagamento"""
+        if self.forma_pagamento and self.forma_pagamento.prazo_recebimento > 0:
+            from datetime import timedelta
+            return self.data_venda.date() + timedelta(days=self.forma_pagamento.prazo_recebimento)
+        return self.data_venda.date()
+    
+    def __str__(self):
+        return f"Venda {self.numero_venda}"
+    
+    class Meta:
+        verbose_name_plural = "Vendas"
+        ordering = ['-data_venda']
+
+
+class ItemVenda(models.Model):
+    venda = models.ForeignKey(Venda, on_delete=models.CASCADE, related_name='itens')
+    produto = models.ForeignKey('Produto', on_delete=models.CASCADE)
+    quantidade = models.IntegerField()
+    preco_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    
+    @property
+    def valor_total(self):
+        return self.quantidade * self.preco_unitario
+    
+    def __str__(self):
+        return f"{self.produto.nome} - {self.quantidade}x R${self.preco_unitario}"
+    
+    class Meta:
+        verbose_name = "Item da Venda"
+        verbose_name_plural = "Itens da Venda"

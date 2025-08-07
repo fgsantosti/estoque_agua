@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-receipt me-2"></i>{{ title }}</h2>
+    <div>
+        <a href="{% url 'venda_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+        <button class="btn btn-outline-primary" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Imprimir
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informações da Venda -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informações da Venda</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="40%">Número:</th>
+                        <td><span class="badge bg-primary fs-6">{{ venda.numero_venda }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Data:</th>
+                        <td>{{ venda.data_venda|date:"d/m/Y H:i:s" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            {% if venda.status == 'finalizada' %}
+                                <span class="badge bg-success">Finalizada</span>
+                            {% elif venda.status == 'aberta' %}
+                                <span class="badge bg-warning text-dark">Aberta</span>
+                            {% else %}
+                                <span class="badge bg-danger">Cancelada</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Vendedor:</th>
+                        <td>{{ venda.usuario.first_name }} {{ venda.usuario.last_name|default:venda.usuario.username }}</td>
+                    </tr>
+                    <tr>
+                        <th>Cliente:</th>
+                        <td>
+                            {% if venda.cliente %}
+                                {{ venda.cliente.nome }}
+                            {% else %}
+                                <em class="text-muted">Cliente não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Forma Pagamento:</th>
+                        <td>
+                            {% if venda.forma_pagamento %}
+                                {{ venda.forma_pagamento.nome }}
+                                {% if venda.forma_pagamento.prazo_recebimento > 0 %}
+                                    <small class="text-muted">({{ venda.forma_pagamento.prazo_recebimento }} dias)</small>
+                                {% endif %}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if venda.observacao %}
+                    <tr>
+                        <th>Observação:</th>
+                        <td>{{ venda.observacao }}</td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resumo Financeiro -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Resumo Financeiro</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th width="50%">Total de Itens:</th>
+                        <td><span class="badge bg-secondary">{{ venda.total_itens }} item{{ venda.total_itens|pluralize }}</span></td>
+                    </tr>
+                    <tr>
+                        <th>Quantidade Total:</th>
+                        <td><strong>{{ venda.quantidade_total_itens }}</strong></td>
+                    </tr>
+                    <tr class="table-success">
+                        <th><strong>Valor Total:</strong></th>
+                        <td><h4 class="text-success mb-0">R$ {{ venda.valor_total|floatformat:2 }}</h4></td>
+                    </tr>
+                </table>
+                
+                {% if venda.forma_pagamento.prazo_recebimento > 0 %}
+                <div class="alert alert-info">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <strong>Vencimento:</strong> 
+                    {{ venda.data_vencimento|date:"d/m/Y" }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Itens da Venda -->
+<div class="card mt-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-list me-2"></i>Itens da Venda</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th width="5%">#</th>
+                        <th width="35%">Produto</th>
+                        <th width="15%">Código</th>
+                        <th width="10%">Qtd.</th>
+                        <th width="15%">Preço Unit.</th>
+                        <th width="15%">Total</th>
+                        <th width="5%">Un.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in venda.itens.all %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <strong>{{ item.produto.nome }}</strong>
+                            {% if item.produto.categoria %}
+                                <br><small class="text-muted">{{ item.produto.categoria.nome }}</small>
+                            {% endif %}
+                        </td>
+                        <td><code>{{ item.produto.codigo }}</code></td>
+                        <td><span class="badge bg-primary">{{ item.quantidade }}</span></td>
+                        <td>R$ {{ item.preco_unitario|floatformat:2 }}</td>
+                        <td class="fw-bold">R$ {{ item.valor_total|floatformat:2 }}</td>
+                        <td>{{ item.produto.unidade_medida }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">Nenhum item encontrado</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-info">
+                    <tr>
+                        <th colspan="3">Totais:</th>
+                        <th><span class="badge bg-primary">{{ venda.quantidade_total_itens }}</span></th>
+                        <th>-</th>
+                        <th class="fw-bold fs-5">R$ {{ venda.valor_total|floatformat:2 }}</th>
+                        <th>-</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Informações de Auditoria -->
+<div class="card mt-4">
+    <div class="card-header bg-secondary text-white">
+        <h6 class="mb-0"><i class="fas fa-history me-2"></i>Informações do Sistema</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <strong>Criado em:</strong> {{ venda.data_criacao|date:"d/m/Y H:i:s" }}
+                </small>
+            </div>
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <strong>Última atualização:</strong> {{ venda.data_atualizacao|date:"d/m/Y H:i:s" }}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header.bg-secondary, .card:last-child {
+        display: none !important;
+    }
+    
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .table {
+        border: 1px solid #000 !important;
+    }
+    
+    .table th, .table td {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+
+{% endblock %}

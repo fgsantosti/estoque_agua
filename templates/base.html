@@ -103,6 +103,9 @@
                         <a class="nav-link {% if 'movimentacao' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'movimentacao_list' %}">
                             <i class="fas fa-exchange-alt me-2"></i>Movimentações
                         </a>
+                        <a class="nav-link {% if 'venda' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'venda_list' %}">
+                            <i class="fas fa-cash-register me-2"></i>Vendas
+                        </a>
                         <a class="nav-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'categoria_list' %}">
                             <i class="fas fa-tags me-2"></i>Categorias
                         </a>
@@ -133,6 +136,9 @@
                             </a>
                             <a class="nav-link {% if 'movimentacao' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'movimentacao_list' %}">
                                 <i class="fas fa-exchange-alt me-2"></i>Movimentações
+                            </a>
+                            <a class="nav-link {% if 'venda' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'venda_list' %}">
+                                <i class="fas fa-cash-register me-2"></i>Vendas
                             </a>
                             <a class="nav-link {% if 'categoria' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'categoria_list' %}">
                                 <i class="fas fa-tags me-2"></i>Categorias

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Categoria, Produto, MovimentacaoEstoque, Fornecedor, Cliente, FormaPagamento
+from .models import Categoria, Produto, MovimentacaoEstoque, Fornecedor, Cliente, FormaPagamento, Venda, ItemVenda
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
@@ -38,3 +38,55 @@ class FormaPagamentoAdmin(admin.ModelAdmin):
     list_filter = ['ativo', 'prazo_recebimento']
     search_fields = ['nome']
     list_editable = ['ativo']
+
+
+class ItemVendaInline(admin.TabularInline):
+    model = ItemVenda
+    extra = 1
+    fields = ['produto', 'quantidade', 'preco_unitario', 'valor_total']
+    readonly_fields = ['valor_total']
+
+    def valor_total(self, obj):
+        if obj.quantidade and obj.preco_unitario:
+            return f"R$ {obj.valor_total:.2f}"
+        return "R$ 0,00"
+    valor_total.short_description = "Total"
+
+
+@admin.register(Venda)
+class VendaAdmin(admin.ModelAdmin):
+    list_display = ['numero_venda', 'data_venda', 'cliente', 'forma_pagamento', 'total_itens', 'valor_total_display', 'status', 'usuario']
+    list_filter = ['status', 'forma_pagamento', 'data_venda', 'usuario']
+    search_fields = ['numero_venda', 'cliente__nome', 'usuario__username']
+    readonly_fields = ['numero_venda', 'data_criacao', 'data_atualizacao', 'valor_total_display']
+    inlines = [ItemVendaInline]
+    
+    fieldsets = (
+        ('Informações da Venda', {
+            'fields': ('numero_venda', 'status', 'data_venda')
+        }),
+        ('Cliente e Pagamento', {
+            'fields': ('cliente', 'forma_pagamento')
+        }),
+        ('Observações', {
+            'fields': ('observacao', 'usuario')
+        }),
+        ('Sistema', {
+            'fields': ('data_criacao', 'data_atualizacao'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def valor_total_display(self, obj):
+        return f"R$ {obj.valor_total:.2f}"
+    valor_total_display.short_description = "Valor Total"
+    valor_total_display.admin_order_field = 'valor_total'
+
+    def total_itens(self, obj):
+        return obj.total_itens
+    total_itens.short_description = "Itens"
+
+    def save_model(self, request, obj, form, change):
+        if not change:  # Novo objeto
+            obj.usuario = request.user
+        super().save_model(request, obj, form, change)

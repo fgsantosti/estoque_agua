@@ -39,4 +39,12 @@ urlpatterns = [
     path('formas-pagamento/nova/', views.forma_pagamento_create, name='forma_pagamento_create'),
     path('formas-pagamento/<int:pk>/editar/', views.forma_pagamento_edit, name='forma_pagamento_edit'),
     path('formas-pagamento/<int:pk>/deletar/', views.forma_pagamento_delete, name='forma_pagamento_delete'),
+
+    # Vendas
+    path('vendas/', views.venda_list, name='venda_list'),
+    path('vendas/nova/', views.venda_create, name='venda_create'),
+    path('vendas/<int:pk>/', views.venda_detail, name='venda_detail'),
+    
+    # APIs
+    path('api/produto/<int:pk>/preco/', views.produto_preco_api, name='produto_preco_api'),
 ]

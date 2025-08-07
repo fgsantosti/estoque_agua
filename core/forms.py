@@ -1,7 +1,8 @@
 from django import forms
+from django.forms import inlineformset_factory
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Submit, Row, Column
-from .models import Produto, MovimentacaoEstoque, Fornecedor, Cliente, Categoria, FormaPagamento
+from .models import Produto, MovimentacaoEstoque, Fornecedor, Cliente, Categoria, FormaPagamento, Venda, ItemVenda
 
 class ProdutoForm(forms.ModelForm):
     class Meta:
@@ -139,3 +140,71 @@ class FormaPagamentoForm(forms.ModelForm):
             ),
             Submit('submit', 'Salvar', css_class='btn btn-primary')
         )
+
+
+class VendaForm(forms.ModelForm):
+    class Meta:
+        model = Venda
+        fields = ['cliente', 'forma_pagamento', 'observacao']
+        widgets = {
+            'observacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.layout = Layout(
+            Row(
+                Column('cliente', css_class='form-group col-md-6 mb-0'),
+                Column('forma_pagamento', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            'observacao',
+            Submit('submit', 'Finalizar Venda', css_class='btn btn-success btn-lg')
+        )
+
+
+class ItemVendaForm(forms.ModelForm):
+    class Meta:
+        model = ItemVenda
+        fields = ['produto', 'quantidade', 'preco_unitario']
+        widgets = {
+            'produto': forms.Select(attrs={
+                'class': 'form-control',
+                'onchange': 'updatePrice(this)'
+            }),
+            'quantidade': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+                'onchange': 'updateRowTotal(this)'
+            }),
+            'preco_unitario': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01',
+                'onchange': 'updateRowTotal(this)'
+            }),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['produto'].queryset = Produto.objects.filter(ativo=True, estoque_atual__gt=0)
+        self.fields['produto'].empty_label = "Selecione um produto..."
+        
+        # Definir preço inicial se produto já selecionado
+        try:
+            if self.instance and self.instance.pk and self.instance.produto:
+                self.fields['preco_unitario'].initial = self.instance.produto.preco_venda
+        except:
+            # Ignorar se não há produto associado (formulário vazio)
+            pass
+
+
+# Formset para múltiplos itens da venda
+ItemVendaFormSet = inlineformset_factory(
+    Venda, ItemVenda, 
+    form=ItemVendaForm,
+    extra=5,  # 5 linhas vazias por padrão
+    can_delete=True,
+    min_num=1,  # Pelo menos 1 item obrigatório
+    validate_min=True
+)
