@@ -18,13 +18,28 @@
             
             <!-- Dados da Venda -->
             <div class="row mb-4">
-                <div class="col-md-6">
+                <div class="col-md-4">
                     {{ venda_form.cliente|as_crispy_field }}
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     {{ venda_form.forma_pagamento|as_crispy_field }}
                 </div>
+                <div class="col-md-4">
+                    {{ venda_form.status|as_crispy_field }}
+                </div>
             </div>
+            
+            {% if editing %}
+            <!-- Alerta sobre mudança de status -->
+            <div class="alert alert-info" role="alert">
+                <h6><i class="fas fa-info-circle me-2"></i>Alteração de Status</h6>
+                <ul class="mb-0">
+                    <li><strong>Aberta → Finalizada:</strong> Criará movimentações de saída no estoque</li>
+                    <li><strong>Finalizada → Aberta:</strong> Restaurará o estoque e removerá movimentações</li>
+                    <li><strong>Cancelada:</strong> Não pode ser editada (apenas visualizada)</li>
+                </ul>
+            </div>
+            {% endif %}
             
             <div class="mb-4">
                 {{ venda_form.observacao|as_crispy_field }}
@@ -98,7 +113,11 @@
             
             <div class="text-end">
                 <button type="submit" class="btn btn-success btn-lg me-2" id="finalizar-venda">
-                    <i class="fas fa-cash-register me-2"></i>Finalizar Venda
+                    {% if editing %}
+                        <i class="fas fa-save me-2"></i>Salvar Alterações
+                    {% else %}
+                        <i class="fas fa-cash-register me-2"></i>Finalizar Venda
+                    {% endif %}
                 </button>
                 <a href="{% url 'venda_list' %}" class="btn btn-secondary">
                     <i class="fas fa-times me-2"></i>Cancelar

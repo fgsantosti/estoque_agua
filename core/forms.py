@@ -145,9 +145,10 @@ class FormaPagamentoForm(forms.ModelForm):
 class VendaForm(forms.ModelForm):
     class Meta:
         model = Venda
-        fields = ['cliente', 'forma_pagamento', 'observacao']
+        fields = ['cliente', 'forma_pagamento', 'status', 'observacao']
         widgets = {
             'observacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -155,12 +156,13 @@ class VendaForm(forms.ModelForm):
         self.helper = FormHelper()
         self.helper.layout = Layout(
             Row(
-                Column('cliente', css_class='form-group col-md-6 mb-0'),
-                Column('forma_pagamento', css_class='form-group col-md-6 mb-0'),
+                Column('cliente', css_class='form-group col-md-4 mb-0'),
+                Column('forma_pagamento', css_class='form-group col-md-4 mb-0'),
+                Column('status', css_class='form-group col-md-4 mb-0'),
                 css_class='form-row'
             ),
             'observacao',
-            Submit('submit', 'Finalizar Venda', css_class='btn btn-success btn-lg')
+            Submit('submit', 'Salvar Venda', css_class='btn btn-success btn-lg')
         )
 
 

@@ -133,13 +133,17 @@
                                 <a href="{% url 'venda_detail' venda.pk %}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                {% if venda.status == 'aberta' %}
-                                <button class="btn btn-sm btn-outline-warning" title="Editar" disabled>
+                                {% if venda.status != 'cancelada' %}
+                                <a href="{% url 'venda_edit' venda.pk %}" class="btn btn-sm btn-outline-warning" title="Editar Venda">
                                     <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" title="Cancelar" disabled>
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                </a>
+                                {% endif %}
+                                {% if venda.status != 'cancelada' %}
+                                <a href="{% url 'venda_cancel' venda.pk %}" class="btn btn-sm btn-outline-danger" 
+                                   title="{% if venda.status == 'finalizada' %}Cancelar Venda{% else %}Deletar Venda{% endif %}"
+                                   onclick="return confirm('Confirma a ação para a venda {{ venda.numero_venda }}?')">
+                                    <i class="fas fa-{% if venda.status == 'finalizada' %}trash{% else %}trash{% endif %}"></i>
+                                </a>
                                 {% endif %}
                             </div>
                         </td>

@@ -1,51 +1,154 @@
 
 {% extends 'base.html' %}
+
 {% block title %}Clientes{% endblock %}
+
 {% block content %}
-<h2>Clientes</h2>
-<a href="{% url 'cliente_create' %}" class="btn btn-primary mb-3">Novo Cliente</a>
-<form method="get" class="mb-3">
-  <input type="text" name="search" value="{{ search|default_if_none:'' }}" class="form-control" placeholder="Buscar por nome ou CPF/CNPJ">
-</form>
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Nome</th>
-      <th class="d-none d-md-table-cell">CPF/CNPJ</th>
-      <th>Telefone</th>
-      <th class="d-none d-md-table-cell">Email</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for cliente in page_obj %}
-    <tr>
-      <td>{{ cliente.nome }}</td>
-      <td class="d-none d-md-table-cell">{{ cliente.cpf_cnpj }}</td>
-      <td>{{ cliente.telefone }}</td>
-      <td class="d-none d-md-table-cell">{{ cliente.email }}</td>
-      <td>
-        <a href="{% url 'cliente_edit' cliente.pk %}" class="btn btn-sm btn-primary">
-          <i class="fas fa-edit"></i>
-        </a>
-        <a href="{% url 'cliente_delete' cliente.pk %}" class="btn btn-sm btn-danger">
-          <i class="fas fa-trash"></i>
-        </a>
-      </td>
-    </tr>
-    {% empty %}
-    <tr><td colspan="4">Nenhum cliente encontrado.</td></tr>
-    {% endfor %}
-  </tbody>
-</table>
-<nav>
-  <ul class="pagination">
-    {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
-    {% endif %}
-    <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
-    {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Próxima</a></li>
-    {% endif %}
-  </ul>
-</nav>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-users me-2"></i>Clientes</h2>
+    <a href="{% url 'cliente_create' %}" class="btn btn-success">
+        <i class="fas fa-plus me-2"></i>Novo Cliente
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <h6 class="card-title"><i class="fas fa-filter me-2"></i>Filtros</h6>
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Buscar</label>
+                <input type="text" name="search" value="{{ search|default_if_none:'' }}" class="form-control" 
+                       placeholder="Nome, CPF/CNPJ ou telefone...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tipo</label>
+                <select name="tipo" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="pessoa_fisica" {% if tipo_filter == 'pessoa_fisica' %}selected{% endif %}>Pessoa Física</option>
+                    <option value="pessoa_juridica" {% if tipo_filter == 'pessoa_juridica' %}selected{% endif %}>Pessoa Jurídica</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-1"></i>Filtrar
+                </button>
+                <a href="{% url 'cliente_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabela de Clientes -->
+<div class="card">
+    <div class="card-body">
+        {% if page_obj %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Nome</th>
+                        <th>CPF/CNPJ</th>
+                        <th>Telefone</th>
+                        <th>Email</th>
+                        <th>Cidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cliente in page_obj %}
+                    <tr>
+                        <td class="fw-bold">{{ cliente.nome }}</td>
+                        <td>
+                            {% if cliente.cpf_cnpj %}
+                                <code>{{ cliente.cpf_cnpj }}</code>
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cliente.telefone %}
+                                {{ cliente.telefone }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cliente.email %}
+                                {{ cliente.email }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if cliente.cidade %}
+                                {{ cliente.cidade }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'cliente_detail' cliente.pk %}" class="btn btn-sm btn-outline-primary" title="Ver Detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'cliente_edit' cliente.pk %}" class="btn btn-sm btn-outline-warning" title="Editar Cliente">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'cliente_delete' cliente.pk %}" class="btn btn-sm btn-outline-danger" title="Deletar Cliente"
+                                   onclick="return confirm('Confirma a exclusão do cliente {{ cliente.nome }}?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Paginação -->
+        {% if page_obj.has_other_pages %}
+        <nav aria-label="Navegação de páginas">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% if search %}&search={{ search }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}">Primeira</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}">Anterior</a>
+                    </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}">Próxima</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search %}&search={{ search }}{% endif %}{% if tipo_filter %}&tipo={{ tipo_filter }}{% endif %}">Última</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h4>Nenhum cliente encontrado</h4>
+            <p class="text-muted">Comece cadastrando seu primeiro cliente!</p>
+            <a href="{% url 'cliente_create' %}" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Novo Cliente
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
 {% endblock %}

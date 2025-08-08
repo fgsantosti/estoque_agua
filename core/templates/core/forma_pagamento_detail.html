@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-credit-card me-2"></i>{{ title }}</h2>
+    <div>
+        <a href="{% url 'forma_pagamento_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+        <a href="{% url 'forma_pagamento_edit' forma_pagamento.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit me-2"></i>Editar
+        </a>
+        <a href="{% url 'forma_pagamento_delete' forma_pagamento.pk %}" class="btn btn-danger" 
+           onclick="return confirm('Confirma a exclusão da forma de pagamento {{ forma_pagamento.nome }}?')">
+            <i class="fas fa-trash me-2"></i>Deletar
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle me-2"></i>Informações</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Nome:</th>
+                        <td class="fw-bold">{{ forma_pagamento.nome }}</td>
+                    </tr>
+                    <tr>
+                        <th>Descrição:</th>
+                        <td>
+                            {% if forma_pagamento.descricao %}
+                                {{ forma_pagamento.descricao }}
+                            {% else %}
+                                <em class="text-muted">Sem descrição</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Prazo Recebimento:</th>
+                        <td>
+                            {% if forma_pagamento.prazo_recebimento == 0 %}
+                                <span class="badge bg-success">À vista</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">{{ forma_pagamento.prazo_recebimento }} dia{{ forma_pagamento.prazo_recebimento|pluralize }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            {% if forma_pagamento.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-chart-bar me-2"></i>Estatísticas</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="border-end">
+                            <h3 class="text-primary">{{ total_vendas }}</h3>
+                            <small class="text-muted">Total Vendas</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-success">R$ {{ valor_total|floatformat:2 }}</h3>
+                        <small class="text-muted">Valor Total</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

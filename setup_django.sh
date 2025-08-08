@@ -80,10 +80,10 @@ echo "📁 Coletando arquivos estáticos..."
 python manage.py collectstatic --noinput
 check_success "Coleta de arquivos estáticos"
 
-# Criar superusuário
-echo "👤 Criando dados de exemplo..."
-python manage.py criar_dados_exemplo
-check_success "Criação dos dados de exemplo"
+# Criar dados de exemplo
+echo "👤 Criando dados de exemplo completos..."
+python manage.py criar_sistema_completo
+check_success "Criação do sistema completo com dados de exemplo"
 
 # Executar testes (opcional)
 echo "🧪 Executando testes do projeto..."
@@ -101,12 +101,20 @@ echo "   • Dependências instaladas"
 echo "   • Arquivo .env criado (se necessário)"
 echo "   • Migrações criadas e aplicadas"
 echo "   • Arquivos estáticos coletados"
-echo "   • Dados de exemplo criados"
+echo "   • Sistema completo com dados de exemplo criado"
+echo "   • Vendas e produtos de exemplo gerados"
 echo "   • Testes executados"
 echo ""
 echo "🔑 CREDENCIAIS DE ACESSO:"
 echo "   Administrador: admin / admin123"
 echo "   Usuário: usuario / usuario123"
+echo ""
+echo "🛒 RECURSOS DISPONÍVEIS:"
+echo "   • Sistema de Vendas (múltiplos itens)"
+echo "   • Controle de Estoque automático"
+echo "   • Dashboard com estatísticas de vendas"
+echo "   • Produtos, Clientes e Fornecedores"
+echo "   • Movimentações de estoque"
 echo ""
 echo "🚀 Para iniciar o servidor de desenvolvimento, execute:"
 echo "   source venv/bin/activate"

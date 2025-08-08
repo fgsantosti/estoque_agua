@@ -112,6 +112,35 @@ def produto_list(request):
     return render(request, 'core/produto_list.html', context)
 
 @login_required
+def produto_detail(request, pk):
+    """Visualizar detalhes de um produto"""
+    produto = get_object_or_404(Produto, pk=pk)
+    
+    # Movimentações recentes do produto
+    movimentacoes_recentes = MovimentacaoEstoque.objects.filter(
+        produto=produto
+    ).select_related('usuario', 'forma_pagamento').order_by('-data_movimentacao')[:10]
+    
+    # Estatísticas do produto
+    total_entradas = MovimentacaoEstoque.objects.filter(
+        produto=produto, tipo='entrada'
+    ).aggregate(total=Sum('quantidade'))['total'] or 0
+    
+    total_saidas = MovimentacaoEstoque.objects.filter(
+        produto=produto, tipo='saida'
+    ).aggregate(total=Sum('quantidade'))['total'] or 0
+    
+    context = {
+        'produto': produto,
+        'movimentacoes_recentes': movimentacoes_recentes,
+        'total_entradas': total_entradas,
+        'total_saidas': total_saidas,
+        'title': f'Produto: {produto.nome}'
+    }
+    
+    return render(request, 'core/produto_detail.html', context)
+
+@login_required
 def produto_create(request):
     if request.method == 'POST':
         form = ProdutoForm(request.POST)
@@ -228,6 +257,63 @@ def movimentacao_list(request):
     return render(request, 'core/movimentacao_list.html', context)
 
 @login_required
+def movimentacao_detail(request, pk):
+    """Visualizar detalhes de uma movimentação"""
+    movimentacao = get_object_or_404(MovimentacaoEstoque, pk=pk)
+    
+    context = {
+        'movimentacao': movimentacao,
+        'title': f'Movimentação: {movimentacao.get_tipo_display()}'
+    }
+    
+    return render(request, 'core/movimentacao_detail.html', context)
+
+@login_required
+def movimentacao_edit(request, pk):
+    """Editar movimentação (apenas ajustes ou observações)"""
+    movimentacao = get_object_or_404(MovimentacaoEstoque, pk=pk)
+    
+    if request.method == 'POST':
+        # Permitir apenas edição de observação para evitar problemas no estoque
+        observacao = request.POST.get('observacao', '')
+        movimentacao.observacao = observacao
+        movimentacao.save()
+        messages.success(request, 'Movimentação atualizada com sucesso!')
+        return redirect('movimentacao_detail', pk=pk)
+    
+    context = {
+        'movimentacao': movimentacao,
+        'title': f'Editar Movimentação: {movimentacao.get_tipo_display()}'
+    }
+    
+    return render(request, 'core/movimentacao_edit.html', context)
+
+@login_required
+def movimentacao_delete(request, pk):
+    """Deletar movimentação (com cuidado no estoque)"""
+    movimentacao = get_object_or_404(MovimentacaoEstoque, pk=pk)
+    
+    if request.method == 'POST':
+        # Reverter o efeito no estoque
+        produto = movimentacao.produto
+        if movimentacao.tipo == 'entrada':
+            produto.estoque_atual -= movimentacao.quantidade
+        elif movimentacao.tipo == 'saida':
+            produto.estoque_atual += movimentacao.quantidade
+        
+        produto.save()
+        movimentacao.delete()
+        messages.success(request, 'Movimentação deletada e estoque ajustado!')
+        return redirect('movimentacao_list')
+    
+    context = {
+        'movimentacao': movimentacao,
+        'title': f'Deletar Movimentação: {movimentacao.get_tipo_display()}'
+    }
+    
+    return render(request, 'core/movimentacao_confirm_delete.html', context)
+
+@login_required
 def movimentacao_create(request):
     if request.method == 'POST':
         form = MovimentacaoEstoqueForm(request.POST)
@@ -273,6 +359,34 @@ def fornecedor_list(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'core/fornecedor_list.html', {'page_obj': page_obj, 'search': search})
+
+@login_required
+def fornecedor_detail(request, pk):
+    """Visualizar detalhes de um fornecedor"""
+    fornecedor = get_object_or_404(Fornecedor, pk=pk)
+    
+    # Produtos do fornecedor (se houver relacionamento)
+    # Assumindo que existe um campo fornecedor no modelo Produto
+    try:
+        produtos = Produto.objects.filter(fornecedor=fornecedor, ativo=True)
+    except:
+        produtos = []  # Caso não exista o relacionamento
+    
+    # Movimentações de entrada relacionadas
+    entradas = MovimentacaoEstoque.objects.filter(
+        tipo='entrada', 
+        observacao__icontains=fornecedor.nome
+    ).order_by('-data_movimentacao')[:10]
+    
+    context = {
+        'fornecedor': fornecedor,
+        'produtos': produtos[:10] if produtos else [],
+        'entradas': entradas,
+        'total_produtos': len(produtos) if produtos else 0,
+        'title': f'Fornecedor: {fornecedor.nome}'
+    }
+    
+    return render(request, 'core/fornecedor_detail.html', context)
 
 @login_required
 def fornecedor_create(request):
@@ -333,6 +447,28 @@ def cliente_list(request):
     return render(request, 'core/cliente_list.html', {'page_obj': page_obj, 'search': search})
 
 @login_required
+def cliente_detail(request, pk):
+    """Visualizar detalhes de um cliente"""
+    cliente = get_object_or_404(Cliente, pk=pk)
+    
+    # Vendas do cliente
+    vendas = Venda.objects.filter(cliente=cliente).order_by('-data_venda')[:10]
+    
+    # Estatísticas do cliente
+    total_vendas = Venda.objects.filter(cliente=cliente, status='finalizada').count()
+    valor_total_compras = sum(v.valor_total for v in Venda.objects.filter(cliente=cliente, status='finalizada'))
+    
+    context = {
+        'cliente': cliente,
+        'vendas': vendas,
+        'total_vendas': total_vendas,
+        'valor_total_compras': valor_total_compras,
+        'title': f'Cliente: {cliente.nome}'
+    }
+    
+    return render(request, 'core/cliente_detail.html', context)
+
+@login_required
 def cliente_create(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)
@@ -380,6 +516,28 @@ def categoria_list(request):
     return render(request, 'core/categoria_list.html', {'categorias': categorias})
 
 @login_required
+def categoria_detail(request, pk):
+    """Visualizar detalhes de uma categoria"""
+    categoria = get_object_or_404(Categoria, pk=pk)
+    
+    # Produtos da categoria
+    produtos = Produto.objects.filter(categoria=categoria, ativo=True)
+    total_produtos = produtos.count()
+    
+    # Valor total do estoque da categoria
+    valor_total_estoque = sum(p.valor_total_estoque for p in produtos)
+    
+    context = {
+        'categoria': categoria,
+        'produtos': produtos[:10],  # Mostrar apenas os primeiros 10
+        'total_produtos': total_produtos,
+        'valor_total_estoque': valor_total_estoque,
+        'title': f'Categoria: {categoria.nome}'
+    }
+    
+    return render(request, 'core/categoria_detail.html', context)
+
+@login_required
 def categoria_create(request):
     if request.method == 'POST':
         form = CategoriaForm(request.POST)
@@ -425,6 +583,32 @@ def categoria_delete(request, pk):
 def forma_pagamento_list(request):
     formas_pagamento = FormaPagamento.objects.all()
     return render(request, 'core/forma_pagamento_list.html', {'formas_pagamento': formas_pagamento})
+
+@login_required
+def forma_pagamento_detail(request, pk):
+    """Visualizar detalhes de uma forma de pagamento"""
+    forma_pagamento = get_object_or_404(FormaPagamento, pk=pk)
+    
+    # Vendas com esta forma de pagamento
+    vendas = Venda.objects.filter(forma_pagamento=forma_pagamento).order_by('-data_venda')[:10]
+    total_vendas = Venda.objects.filter(forma_pagamento=forma_pagamento, status='finalizada').count()
+    valor_total = sum(v.valor_total for v in Venda.objects.filter(forma_pagamento=forma_pagamento, status='finalizada'))
+    
+    # Movimentações com esta forma de pagamento
+    movimentacoes = MovimentacaoEstoque.objects.filter(
+        forma_pagamento=forma_pagamento
+    ).order_by('-data_movimentacao')[:10]
+    
+    context = {
+        'forma_pagamento': forma_pagamento,
+        'vendas': vendas,
+        'total_vendas': total_vendas,
+        'valor_total': valor_total,
+        'movimentacoes': movimentacoes,
+        'title': f'Forma de Pagamento: {forma_pagamento.nome}'
+    }
+    
+    return render(request, 'core/forma_pagamento_detail.html', context)
 
 @login_required
 def forma_pagamento_create(request):
@@ -628,3 +812,187 @@ def produto_preco_api(request, pk):
         })
     except Produto.DoesNotExist:
         return JsonResponse({'error': 'Produto não encontrado'}, status=404)
+
+
+@login_required
+def venda_edit(request, pk):
+    """Editar venda existente"""
+    venda = get_object_or_404(Venda, pk=pk)
+    
+    # Vendas canceladas não podem ser editadas
+    if venda.status == 'cancelada':
+        messages.error(request, 'Vendas canceladas não podem ser editadas.')
+        return redirect('venda_detail', pk=pk)
+    
+    if request.method == 'POST':
+        status_anterior = venda.status  # Guardar o status anterior
+        venda_form = VendaForm(request.POST, instance=venda)
+        
+        if venda_form.is_valid():
+            with transaction.atomic():
+                venda = venda_form.save()
+                
+                # Verificar se houve mudança de status
+                if status_anterior != venda.status:
+                    if venda.status == 'finalizada' and status_anterior == 'aberta':
+                        # Venda foi finalizada - criar movimentações se necessário
+                        for item in venda.itens.all():
+                            # Verificar se já existe movimentação para este item
+                            movimentacao_existente = MovimentacaoEstoque.objects.filter(
+                                produto=item.produto,
+                                tipo='saida',
+                                quantidade=item.quantidade,
+                                observacao=f'Venda {venda.numero_venda}'
+                            ).exists()
+                            
+                            if not movimentacao_existente:
+                                MovimentacaoEstoque.objects.create(
+                                    produto=item.produto,
+                                    tipo='saida',
+                                    quantidade=item.quantidade,
+                                    preco_unitario=item.preco_unitario,
+                                    forma_pagamento=venda.forma_pagamento,
+                                    observacao=f'Venda {venda.numero_venda}',
+                                    usuario=request.user
+                                )
+                        messages.success(request, f'Venda {venda.numero_venda} finalizada com sucesso!')
+                    
+                    elif venda.status == 'aberta' and status_anterior == 'finalizada':
+                        # Venda foi reaberta - remover movimentações
+                        MovimentacaoEstoque.objects.filter(
+                            observacao=f'Venda {venda.numero_venda}',
+                            tipo='saida'
+                        ).delete()
+                        
+                        # Restaurar estoque
+                        for item in venda.itens.all():
+                            produto = item.produto
+                            produto.estoque_atual += item.quantidade
+                            produto.save()
+                        messages.warning(request, f'Venda {venda.numero_venda} reaberta. Estoque restaurado.')
+                
+                formset = ItemVendaFormSet(request.POST, instance=venda)
+                
+                if formset.is_valid():
+                    # Primeiro, restaurar estoque dos itens que serão removidos/modificados
+                    for form in formset.deleted_forms:
+                        if form.instance.pk:
+                            item = form.instance
+                            produto = item.produto
+                            produto.estoque_atual += item.quantidade
+                            produto.save()
+                            
+                            # Remover movimentação correspondente
+                            movimentacao = MovimentacaoEstoque.objects.filter(
+                                produto=produto,
+                                tipo='saida',
+                                quantidade=item.quantidade,
+                                observacao=f'Venda {venda.numero_venda}'
+                            ).first()
+                            if movimentacao:
+                                movimentacao.delete()
+                    
+                    # Processar itens modificados/novos
+                    erro_estoque = False
+                    for form in formset:
+                        if form.cleaned_data and not form.cleaned_data.get('DELETE'):
+                            produto = form.cleaned_data['produto']
+                            quantidade_nova = form.cleaned_data['quantidade']
+                            
+                            # Se é item existente, calcular diferença
+                            if form.instance.pk:
+                                quantidade_antiga = form.instance.quantidade
+                                diferenca = quantidade_nova - quantidade_antiga
+                                
+                                if diferenca > 0 and produto.estoque_atual < diferenca:
+                                    messages.error(request, f'Estoque insuficiente para {produto.nome}. Disponível: {produto.estoque_atual}')
+                                    erro_estoque = True
+                            else:
+                                # Item novo
+                                if produto.estoque_atual < quantidade_nova:
+                                    messages.error(request, f'Estoque insuficiente para {produto.nome}. Disponível: {produto.estoque_atual}')
+                                    erro_estoque = True
+                    
+                    if not erro_estoque:
+                        # Salvar itens e ajustar estoque
+                        for form in formset:
+                            if form.cleaned_data and not form.cleaned_data.get('DELETE'):
+                                item = form.save()
+                                produto = item.produto
+                                
+                                if form.instance.pk and form.instance.pk == item.pk:
+                                    # Item editado - ajustar apenas a diferença
+                                    if hasattr(form, '_original_quantidade'):
+                                        diferenca = item.quantidade - form._original_quantidade
+                                        produto.estoque_atual -= diferenca
+                                    else:
+                                        # Primeira vez editando, usar quantidade total
+                                        produto.estoque_atual -= item.quantidade
+                                else:
+                                    # Item novo
+                                    produto.estoque_atual -= item.quantidade
+                                    
+                                    # Criar movimentação
+                                    MovimentacaoEstoque.objects.create(
+                                        produto=produto,
+                                        tipo='saida',
+                                        quantidade=item.quantidade,
+                                        preco_unitario=item.preco_unitario,
+                                        forma_pagamento=venda.forma_pagamento,
+                                        observacao=f'Venda {venda.numero_venda}',
+                                        usuario=request.user
+                                    )
+                                
+                                produto.save()
+                        
+                        messages.success(request, f'Venda {venda.numero_venda} atualizada com sucesso!')
+                        return redirect('venda_detail', pk=venda.pk)
+                else:
+                    messages.error(request, 'Erro nos itens da venda. Verifique os dados informados.')
+    else:
+        venda_form = VendaForm(instance=venda)
+        formset = ItemVendaFormSet(instance=venda)
+    
+    return render(request, 'core/venda_form.html', {
+        'venda_form': venda_form,
+        'formset': formset,
+        'title': f'Editar Venda {venda.numero_venda}',
+        'editing': True
+    })
+
+
+@login_required
+def venda_cancel(request, pk):
+    """Cancelar/deletar venda"""
+    venda = get_object_or_404(Venda, pk=pk)
+    
+    if request.method == 'POST':
+        with transaction.atomic():
+            # Se venda está finalizada, restaurar estoque
+            if venda.status == 'finalizada':
+                for item in venda.itens.all():
+                    produto = item.produto
+                    produto.estoque_atual += item.quantidade
+                    produto.save()
+                    
+                    # Remover movimentações relacionadas
+                    MovimentacaoEstoque.objects.filter(
+                        produto=produto,
+                        tipo='saida',
+                        observacao=f'Venda {venda.numero_venda}'
+                    ).delete()
+            
+            numero_venda = venda.numero_venda
+            venda.delete()
+            
+            messages.success(request, f'Venda {numero_venda} cancelada/deletada com sucesso! Estoque restaurado.')
+            return redirect('venda_list')
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': venda,
+        'title': f'Cancelar/Deletar Venda {venda.numero_venda}',
+        'cancel_url': 'venda_list',
+        'delete_message': 'Esta ação irá cancelar a venda e restaurar o estoque dos produtos.',
+        'items_count': venda.itens.count(),
+        'valor_total': venda.valor_total
+    })

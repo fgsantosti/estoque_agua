@@ -6,7 +6,8 @@ Sistema completo de gerenciamento de estoque para distribuidoras de água, desen
 
 - 🔐 **Sistema de Login/Logout** com autenticação
 - 📊 **Dashboard** com estatísticas em tempo real
-- 📦 **Gestão de Produtos** (CRUD completo)
+- � **Sistema de Vendas** com múltiplos itens (tipo PDV)
+- �📦 **Gestão de Produtos** (CRUD completo)
 - 📈 **Controle de Movimentações** (Entrada/Saída/Ajuste)
 - 🏷️ **Categorização de Produtos**
 - 🚚 **Cadastro de Fornecedores**
@@ -16,6 +17,7 @@ Sistema completo de gerenciamento de estoque para distribuidoras de água, desen
 - 💰 **Controle de Preços** (Custo/Venda)
 - 📱 **Interface Responsiva** (Bootstrap 5)
 - 🎨 **Design Moderno** com gradientes e animações
+- 🧾 **Relatórios de Vendas** e faturamento
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -54,11 +56,39 @@ python manage.py migrate
 python manage.py collectstatic --noinput
 
 # 5. Criar dados de exemplo
-python manage.py criar_dados_exemplo
+python manage.py criar_sistema_completo
 
 # 6. Iniciar servidor
 python manage.py runserver
 ```
+
+## 🛒 Sistema de Vendas (Novo!)
+
+O sistema agora funciona como um **caixa de supermercado** completo:
+
+### 🌟 Características do Sistema de Vendas
+- **Múltiplos Itens:** Uma venda pode conter vários produtos
+- **Cálculo Automático:** Preços e totais calculados em tempo real
+- **Controle de Estoque:** Reduz automaticamente o estoque ao finalizar venda
+- **Interface PDV:** Similar a um ponto de venda real
+- **Numeração Automática:** Cada venda recebe um número sequencial
+- **Comprovante:** Visualização detalhada com opção de impressão
+
+### 📋 Como Fazer uma Venda
+1. **Acesse:** Menu "Vendas" → "Nova Venda"
+2. **Selecione:** Cliente e forma de pagamento (opcionais)
+3. **Adicione Produtos:**
+   - Escolha o produto (preço preenche automaticamente)
+   - Informe a quantidade
+   - Adicione mais itens conforme necessário
+4. **Finalize:** Clique em "Finalizar Venda"
+5. **Visualize:** O sistema gera o comprovante automaticamente
+
+### 📊 Estatísticas de Vendas no Dashboard
+- **Vendas do Dia:** Quantidade e valor faturado hoje
+- **Vendas do Mês:** Total de vendas dos últimos 30 dias
+- **Faturamento:** Valores totais por período
+- **Vendas Recentes:** Lista das últimas vendas realizadas
 
 ## 🔑 Credenciais de Acesso
 
@@ -106,11 +136,20 @@ O sistema vem com dados pré-configurados para demonstração:
 - **3 Fornecedores** com dados completos
 - **5 Clientes** (pessoas físicas e jurídicas)
 - **6 Formas de Pagamento** (À Vista, Cartão, Boletos, etc.)
-- **18+ Movimentações** de entrada, saída e ajuste
+- **20+ Movimentações** de entrada, saída e ajuste
+- **10+ Vendas** de exemplo com múltiplos itens
+- **30+ Itens de Venda** distribuídos nas vendas
 
 ### 🔑 Credenciais de Acesso:
 - **Administrador:** `admin` / `admin123`
 - **Usuário:** `usuario` / `usuario123`
+
+### 🛒 Exemplos de Vendas Geradas:
+- Vendas com 1 a 4 produtos diferentes
+- Clientes variados (com e sem cliente informado)
+- Diferentes formas de pagamento
+- Datas distribuídas nos últimos 30 dias
+- Valores e quantidades realistas
 
 ## 💳 Gerenciamento de Formas de Pagamento
 
@@ -124,10 +163,23 @@ O sistema vem com dados pré-configurados para demonstração:
 
 ### Dashboard
 - Estatísticas gerais do estoque
+- Estatísticas de vendas (hoje e mês)
+- Faturamento total por período
 - Produtos com estoque baixo
 - Valor total do estoque
 - Movimentações recentes
+- Vendas recentes
 - Gráficos e métricas
+
+### Sistema de Vendas 🛒
+- Interface tipo PDV (Ponto de Venda)
+- Múltiplos produtos por venda
+- Cálculos automáticos em tempo real
+- Controle automático de estoque
+- Numeração sequencial de vendas
+- Comprovantes detalhados
+- Filtros e relatórios de vendas
+- Histórico completo de transações
 
 ### Gestão de Produtos
 - Cadastro completo com categoria
@@ -135,6 +187,7 @@ O sistema vem com dados pré-configurados para demonstração:
 - Definição de estoque mínimo
 - Status ativo/inativo
 - Código único por produto
+- Integração com sistema de vendas
 
 ### Controle de Estoque
 - Movimentações de entrada, saída e ajuste
@@ -183,13 +236,25 @@ estoque_agua/
 
 ## 🧪 Comandos de Gestão
 
-### Criação de Dados de Exemplo
+### Criação do Sistema Completo (Recomendado)
 ```bash
-# Criar dados de exemplo (mantém dados existentes)
+# Criar sistema completo com produtos, clientes, fornecedores, vendas
+python manage.py criar_sistema_completo
+
+# Criar apenas vendas extras (se sistema já existe)
+python manage.py criar_sistema_completo --apenas-vendas
+
+# Limpar dados existentes e criar sistema novo
+python manage.py criar_sistema_completo --clear
+```
+
+### Comandos Individuais (Legado)
+```bash
+# Criar apenas dados básicos
 python manage.py criar_dados_exemplo
 
-# Limpar dados existentes e criar novos
-python manage.py criar_dados_exemplo --clear
+# Criar apenas vendas de exemplo
+python manage.py criar_dados_vendas
 ```
 
 ### Testes do Sistema

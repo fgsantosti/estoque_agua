@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-truck me-2"></i>{{ title }}</h2>
+    <div>
+        <a href="{% url 'fornecedor_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+        <a href="{% url 'fornecedor_edit' fornecedor.pk %}" class="btn btn-warning">
+            <i class="fas fa-edit me-2"></i>Editar
+        </a>
+        <a href="{% url 'fornecedor_delete' fornecedor.pk %}" class="btn btn-danger" 
+           onclick="return confirm('Confirma a exclusão do fornecedor {{ fornecedor.nome }}?')">
+            <i class="fas fa-trash me-2"></i>Deletar
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5><i class="fas fa-info-circle me-2"></i>Informações do Fornecedor</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Nome:</th>
+                        <td class="fw-bold">{{ fornecedor.nome }}</td>
+                    </tr>
+                    <tr>
+                        <th>CNPJ:</th>
+                        <td>
+                            {% if fornecedor.cnpj %}
+                                <code>{{ fornecedor.cnpj }}</code>
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>
+                            {% if fornecedor.email %}
+                                {{ fornecedor.email }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Telefone:</th>
+                        <td>
+                            {% if fornecedor.telefone %}
+                                {{ fornecedor.telefone }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-borderless">
+                    <tr>
+                        <th>Endereço:</th>
+                        <td>
+                            {% if fornecedor.endereco %}
+                                {{ fornecedor.endereco }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Cidade:</th>
+                        <td>
+                            {% if fornecedor.cidade %}
+                                {{ fornecedor.cidade }}
+                            {% else %}
+                                <em class="text-muted">Não informado</em>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Status:</th>
+                        <td>
+                            {% if fornecedor.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Total Produtos:</th>
+                        <td><span class="badge bg-info">{{ total_produtos }}</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
