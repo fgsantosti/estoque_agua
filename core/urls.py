@@ -3,7 +3,11 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('', views.dashboard, name='dashboard'),
+    # Homepage pública
+    path('', views.homepage, name='homepage'),
+    
+    # Dashboard do sistema (requer login)
+    path('sistema/', views.dashboard, name='dashboard'),
 
     # Produtos
     path('produtos/', views.produto_list, name='produto_list'),
@@ -54,6 +58,17 @@ urlpatterns = [
     path('vendas/<int:pk>/', views.venda_detail, name='venda_detail'),
     path('vendas/<int:pk>/editar/', views.venda_edit, name='venda_edit'),
     path('vendas/<int:pk>/cancelar/', views.venda_cancel, name='venda_cancel'),
+    
+    # Pagamentos
+    path('vendas/<int:venda_id>/checkout/', views.venda_checkout, name='venda_checkout'),
+    path('vendas/<int:venda_id>/pagamento/', views.pagamento_create, name='pagamento_create'),
+    path('pagamentos/<int:pk>/deletar/', views.pagamento_delete, name='pagamento_delete'),
+    
+    # Contas a Receber
+    path('contas-receber/', views.contas_receber_list, name='contas_receber_list'),
+    path('contas-receber/nova/', views.contas_receber_create, name='contas_receber_create'),
+    path('contas-receber/<int:pk>/', views.conta_receber_detail, name='conta_receber_detail'),
+    path('contas-receber/<int:pk>/pagamento/', views.conta_receber_pagamento, name='conta_receber_pagamento'),
     
     # APIs
     path('api/produto/<int:pk>/preco/', views.produto_preco_api, name='produto_preco_api'),

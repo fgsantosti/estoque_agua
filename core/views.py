@@ -5,10 +5,19 @@ from django.db.models import Sum, Count, Q, F
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db import transaction
-from .models import Produto, MovimentacaoEstoque, Fornecedor, Cliente, Categoria, FormaPagamento, Venda, ItemVenda
-from .forms import ProdutoForm, MovimentacaoEstoqueForm, FornecedorForm, ClienteForm, CategoriaForm, FormaPagamentoForm, VendaForm, ItemVendaFormSet
+from .models import (Produto, MovimentacaoEstoque, Fornecedor, Cliente, Categoria, 
+                    FormaPagamento, Venda, ItemVenda, Pagamento, ContasReceber, PagamentoConta)
+from .forms import (ProdutoForm, MovimentacaoEstoqueForm, FornecedorForm, ClienteForm, 
+                   CategoriaForm, FormaPagamentoForm, VendaForm, ItemVendaFormSet, 
+                   PagamentoForm, ContasReceberForm, PagamentoContaForm)
 from django.utils import timezone
 from datetime import datetime, timedelta
+
+def homepage(request):
+    """Homepage pública da Império das Águas"""
+    return render(request, 'core/homepage.html', {
+        'title': 'Império das Águas - Água Mineral de Qualidade'
+    })
 
 @login_required
 def dashboard(request):
@@ -715,6 +724,7 @@ def venda_create(request):
     """Criar nova venda"""
     if request.method == 'POST':
         venda_form = VendaForm(request.POST)
+        formset = ItemVendaFormSet(request.POST)  # Inicializar formset sempre que for POST
         
         if venda_form.is_valid():
             with transaction.atomic():
@@ -722,7 +732,7 @@ def venda_create(request):
                 venda.usuario = request.user
                 venda.save()
                 
-                formset = ItemVendaFormSet(request.POST, instance=venda)
+                formset = ItemVendaFormSet(request.POST, instance=venda)  # Reatribuir com instance
                 
                 if formset.is_valid():
                     itens_salvos = []
@@ -762,19 +772,39 @@ def venda_create(request):
                                 )
                         
                         if itens_salvos:
-                            venda.status = 'finalizada'
+                            # Se tem cliente, criar conta a receber automaticamente
+                            if venda.cliente:
+                                ContasReceber.objects.create(
+                                    cliente=venda.cliente,
+                                    venda=venda,
+                                    valor_total=venda.valor_total,
+                                    valor_pago=0,  # Inicia sem pagamento
+                                    data_vencimento=venda.data_vencimento,
+                                    status='aberto',
+                                    observacao=f'Venda {venda.numero_venda} - Aguardando pagamento',
+                                    usuario=request.user
+                                )
+                                venda.status = 'aberta'  # Venda fica em aberto para pagamento
+                                messages.success(request, f'Venda {venda.numero_venda} criada! Cliente pode pagar em "Contas a Receber". Total: R$ {venda.valor_total:.2f}')
+                            else:
+                                venda.status = 'finalizada'  # Sem cliente = venda balcão finalizada
+                                messages.success(request, f'Venda {venda.numero_venda} finalizada com sucesso! Total: R$ {venda.valor_total:.2f}')
+                            
                             venda.save()
-                            messages.success(request, f'Venda {venda.numero_venda} finalizada com sucesso! Total: R$ {venda.valor_total:.2f}')
                             return redirect('venda_detail', pk=venda.pk)
                         else:
                             venda.delete()
                             messages.error(request, 'Adicione pelo menos um item à venda')
                     else:
+                        # Erro de estoque - manter formset para mostrar erros
                         venda.delete()
                 else:
+                    # Formset inválido - manter formset para mostrar erros
                     venda.delete()
                     messages.error(request, 'Erro nos itens da venda. Verifique os dados informados.')
+        # Se venda_form não é válido, formset já foi inicializado no início
     else:
+        # Requisição GET - inicializar formulários vazios
         venda_form = VendaForm()
         formset = ItemVendaFormSet()
     
@@ -856,6 +886,19 @@ def venda_edit(request, pk):
                                     usuario=request.user
                                 )
                         messages.success(request, f'Venda {venda.numero_venda} finalizada com sucesso!')
+                        
+                        # Se tem cliente, criar conta a receber automaticamente
+                        if venda.cliente:
+                            conta, created = ContasReceber.objects.get_or_create(
+                                venda=venda,
+                                cliente=venda.cliente,
+                                defaults={
+                                    'valor_total': venda.valor_total,
+                                    'valor_pago': venda.valor_total_pago,
+                                    'data_vencimento': venda.data_vencimento,
+                                    'usuario': request.user
+                                }
+                            )
                     
                     elif venda.status == 'aberta' and status_anterior == 'finalizada':
                         # Venda foi reaberta - remover movimentações
@@ -995,4 +1038,350 @@ def venda_cancel(request, pk):
         'delete_message': 'Esta ação irá cancelar a venda e restaurar o estoque dos produtos.',
         'items_count': venda.itens.count(),
         'valor_total': venda.valor_total
+    })
+
+
+# ============================================================================
+# VIEWS DE PAGAMENTOS E CONTAS A RECEBER
+# ============================================================================
+
+@login_required
+def pagamento_create(request, venda_id):
+    """Criar novo pagamento para uma venda"""
+    venda = get_object_or_404(Venda, pk=venda_id)
+    
+    if venda.valor_pendente <= 0:
+        messages.error(request, 'Esta venda já está totalmente paga!')
+        return redirect('venda_detail', pk=venda.pk)
+    
+    if request.method == 'POST':
+        form = PagamentoForm(request.POST, venda=venda)
+        if form.is_valid():
+            with transaction.atomic():
+                pagamento = form.save(commit=False)
+                pagamento.venda = venda
+                pagamento.usuario = request.user
+                pagamento.save()
+                
+                # Atualizar status da venda
+                venda.atualizar_status_pagamento()
+                
+                # Se cliente existe, criar/atualizar conta a receber automaticamente
+                if venda.cliente:
+                    conta, created = ContasReceber.objects.get_or_create(
+                        venda=venda,
+                        cliente=venda.cliente,
+                        defaults={
+                            'valor_total': venda.valor_total,
+                            'valor_pago': venda.valor_total_pago,
+                            'data_vencimento': venda.data_vencimento,
+                            'usuario': request.user
+                        }
+                    )
+                    if not created:
+                        # Atualizar conta existente
+                        conta.valor_pago = venda.valor_total_pago
+                        if venda.valor_pendente <= 0:
+                            conta.status = 'quitado'
+                        elif conta.valor_pago > 0:
+                            conta.status = 'parcial'
+                        else:
+                            conta.status = 'aberto'
+                        conta.save()
+                
+                messages.success(request, f'Pagamento de R$ {pagamento.valor_pago:.2f} registrado com sucesso!')
+                return redirect('venda_detail', pk=venda.pk)
+    else:
+        form = PagamentoForm(venda=venda)
+    
+    return render(request, 'core/pagamento_form.html', {
+        'form': form,
+        'venda': venda,
+        'title': f'Novo Pagamento - Venda {venda.numero_venda}'
+    })
+
+
+@login_required
+def venda_checkout(request, venda_id):
+    """Tela de checkout com múltiplas formas de pagamento - permite pagamentos parciais"""
+    venda = get_object_or_404(Venda, pk=venda_id)
+    
+    # Permitir pagamentos para vendas abertas, finalizadas ou com pagamento parcial
+    if venda.status not in ['aberta', 'finalizada', 'parcial']:
+        messages.error(request, 'Esta venda não pode receber pagamentos!')
+        return redirect('venda_detail', pk=venda.pk)
+    
+    # Verificar se ainda há valor a pagar
+    if venda.valor_pendente <= 0:
+        messages.info(request, 'Esta venda já está totalmente paga!')
+        return redirect('venda_detail', pk=venda.pk)
+    
+    if request.method == 'POST':
+        # Processar múltiplos pagamentos
+        formas_pagamento = request.POST.getlist('forma_pagamento')
+        valores = request.POST.getlist('valor_pagamento')
+        
+        # Filtrar valores vazios
+        pagamentos_dados = [(f, v) for f, v in zip(formas_pagamento, valores) if f and v and float(v) > 0]
+        
+        if not pagamentos_dados:
+            messages.error(request, 'É necessário informar pelo menos uma forma de pagamento!')
+        else:
+            total_pagamentos = sum(float(v) for f, v in pagamentos_dados)
+            valor_devido = float(venda.valor_pendente)
+            
+            # Validar se não está pagando mais que o devido
+            if total_pagamentos > valor_devido + 0.01:  # Tolerância de 1 centavo
+                messages.error(request, 
+                    f'Total dos pagamentos (R$ {total_pagamentos:.2f}) não pode ser maior que o valor devido (R$ {valor_devido:.2f})')
+            else:
+                with transaction.atomic():
+                    # Criar pagamentos
+                    for forma_id, valor in pagamentos_dados:
+                        Pagamento.objects.create(
+                            venda=venda,
+                            forma_pagamento_id=forma_id,
+                            valor_pago=valor,
+                            usuario=request.user
+                        )
+                    
+                    # Atualizar status da venda
+                    venda.atualizar_status_pagamento()
+                    
+                    # Se cliente existe, criar/atualizar conta a receber automaticamente
+                    if venda.cliente:
+                        conta, created = ContasReceber.objects.get_or_create(
+                            venda=venda,
+                            cliente=venda.cliente,
+                            defaults={
+                                'valor_total': venda.valor_total,
+                                'valor_pago': venda.valor_total_pago,
+                                'data_vencimento': venda.data_vencimento,
+                                'usuario': request.user
+                            }
+                        )
+                        if not created:
+                            # Atualizar conta existente
+                            conta.valor_pago = venda.valor_total_pago
+                            if venda.valor_pendente <= 0:
+                                conta.status = 'quitado'
+                            elif conta.valor_pago > 0:
+                                conta.status = 'parcial'
+                            else:
+                                conta.status = 'aberto'
+                            conta.save()
+                    
+                    # Mensagem baseada no status final
+                    if venda.valor_pendente <= 0:
+                        messages.success(request, f'Venda {venda.numero_venda} totalmente paga! Pagamento de R$ {total_pagamentos:.2f} registrado.')
+                    else:
+                        messages.success(request, f'Pagamento parcial de R$ {total_pagamentos:.2f} registrado! Restam R$ {venda.valor_pendente:.2f} a pagar.')
+                    
+                    return redirect('venda_detail', pk=venda.pk)
+    
+    formas_pagamento = FormaPagamento.objects.filter(ativo=True)
+    
+    return render(request, 'core/venda_checkout.html', {
+        'venda': venda,
+        'formas_pagamento': formas_pagamento,
+        'title': f'Pagamento - Venda {venda.numero_venda}'
+    })
+
+
+@login_required
+def contas_receber_list(request):
+    """Lista de contas a receber"""
+    contas = ContasReceber.objects.select_related('cliente', 'venda').all()
+    
+    # Filtros
+    cliente_id = request.GET.get('cliente')
+    status = request.GET.get('status')
+    vencidas = request.GET.get('vencidas')
+    
+    if cliente_id:
+        contas = contas.filter(cliente_id=cliente_id)
+    if status:
+        contas = contas.filter(status=status)
+    if vencidas == 'sim':
+        contas = [c for c in contas if c.esta_vencido]
+    
+    # Paginação
+    paginator = Paginator(contas, 20)
+    page = request.GET.get('page')
+    contas_paginadas = paginator.get_page(page)
+    
+    # Estatísticas
+    todas_contas = ContasReceber.objects.filter(status__in=['aberto', 'parcial'])
+    total_em_aberto = sum(c.valor_pendente for c in todas_contas)
+    contas_vencidas = [c for c in todas_contas if c.esta_vencido]
+    total_vencidas = sum(c.valor_pendente for c in contas_vencidas)
+    contas_parciais = ContasReceber.objects.filter(status='parcial')
+    quitadas_mes = ContasReceber.objects.filter(
+        status='quitado',
+        data_criacao__month=timezone.now().month,
+        data_criacao__year=timezone.now().year
+    )
+    
+    context = {
+        'contas': contas_paginadas,
+        'clientes': Cliente.objects.all(),
+        'total_em_aberto': total_em_aberto,
+        'total_vencidas': total_vencidas,
+        'count_vencidas': len(contas_vencidas),
+        'contas_parciais': contas_parciais,
+        'quitadas_mes': quitadas_mes,
+        'title': 'Contas a Receber'
+    }
+    
+    return render(request, 'core/contas_receber_list.html', context)
+
+
+@login_required
+def conta_receber_detail(request, pk):
+    """Detalhes de uma conta a receber"""
+    conta = get_object_or_404(ContasReceber, pk=pk)
+    pagamentos = []
+    
+    if conta.venda:
+        pagamentos = conta.venda.pagamentos.all()
+    
+    return render(request, 'core/conta_receber_detail.html', {
+        'conta': conta,
+        'pagamentos': pagamentos,
+        'title': f'Conta a Receber - {conta.cliente.nome}'
+    })
+
+
+@login_required
+def contas_receber_create(request):
+    """Criar nova conta a receber (sem venda vinculada)"""
+    if request.method == 'POST':
+        form = ContasReceberForm(request.POST)
+        if form.is_valid():
+            conta = form.save(commit=False)
+            conta.usuario = request.user
+            conta.save()
+            messages.success(request, 'Conta a receber criada com sucesso!')
+            return redirect('contas_receber_list')
+    else:
+        form = ContasReceberForm()
+    
+    return render(request, 'core/conta_receber_form.html', {
+        'form': form,
+        'title': 'Nova Conta a Receber'
+    })
+
+
+@login_required
+def conta_receber_pagamento(request, pk):
+    """Fazer pagamento parcial em conta a receber"""
+    conta = get_object_or_404(ContasReceber, pk=pk)
+    
+    if conta.status == 'quitado':
+        messages.error(request, 'Esta conta já está quitada!')
+        return redirect('conta_receber_detail', pk=pk)
+    
+    if request.method == 'POST':
+        form = PagamentoContaForm(request.POST, conta=conta)
+        if form.is_valid():
+            with transaction.atomic():
+                valor_pago = form.cleaned_data['valor_pago']
+                
+                if conta.venda:
+                    # Conta vinculada a uma venda - usar modelo Pagamento
+                    pagamento = Pagamento.objects.create(
+                        venda=conta.venda,
+                        forma_pagamento=form.cleaned_data['forma_pagamento'],
+                        valor_pago=valor_pago,
+                        observacao=form.cleaned_data.get('observacao', ''),
+                        usuario=request.user
+                    )
+                    # Atualizar venda
+                    conta.venda.atualizar_status_pagamento()
+                else:
+                    # Conta avulsa - usar modelo PagamentoConta
+                    pagamento = PagamentoConta.objects.create(
+                        conta_receber=conta,
+                        forma_pagamento=form.cleaned_data['forma_pagamento'],
+                        valor_pago=valor_pago,
+                        observacao=form.cleaned_data.get('observacao', ''),
+                        usuario=request.user
+                    )
+                
+                # Atualizar conta a receber
+                conta.valor_pago += valor_pago
+                
+                # Atualizar status baseado no pagamento
+                if conta.valor_pago >= conta.valor_total:
+                    conta.status = 'quitado'
+                    if conta.venda:
+                        conta.venda.status = 'paga'
+                        conta.venda.save()
+                elif conta.valor_pago > 0:
+                    conta.status = 'parcial'
+                    if conta.venda:
+                        conta.venda.status = 'parcial'
+                        conta.venda.save()
+                
+                conta.save()
+                
+                valor_restante = conta.valor_pendente
+                if valor_restante <= 0:
+                    messages.success(request, f'🎉 Conta quitada! Pagamento de R$ {valor_pago:.2f} registrado com sucesso!')
+                else:
+                    messages.success(request, f'✅ Pagamento de R$ {valor_pago:.2f} registrado! Resta pagar: R$ {valor_restante:.2f}')
+                
+                return redirect('conta_receber_detail', pk=conta.pk)
+                
+                # Atualizar conta a receber
+                conta.valor_pago += form.cleaned_data['valor_pago']
+                
+                # Atualizar status baseado no pagamento
+                if conta.valor_pago >= conta.valor_total:
+                    conta.status = 'quitado'
+                    conta.venda.status = 'paga'
+                elif conta.valor_pago > 0:
+                    conta.status = 'parcial'
+                    conta.venda.status = 'parcial'
+                
+                conta.save()
+                conta.venda.save()
+                
+                valor_restante = conta.valor_pendente
+                if valor_restante <= 0:
+                    messages.success(request, f'🎉 Conta quitada! Pagamento de R$ {pagamento.valor_pago:.2f} registrado com sucesso!')
+                else:
+                    messages.success(request, f'✅ Pagamento de R$ {pagamento.valor_pago:.2f} registrado! Resta pagar: R$ {valor_restante:.2f}')
+                
+                return redirect('conta_receber_detail', pk=conta.pk)
+    else:
+        form = PagamentoContaForm(conta=conta)
+    
+    return render(request, 'core/conta_receber_pagamento.html', {
+        'form': form,
+        'conta': conta,
+        'title': f'Pagamento - {conta.cliente.nome}'
+    })
+
+
+@login_required
+def pagamento_delete(request, pk):
+    """Excluir um pagamento"""
+    pagamento = get_object_or_404(Pagamento, pk=pk)
+    venda = pagamento.venda
+    
+    if request.method == 'POST':
+        with transaction.atomic():
+            pagamento.delete()
+            # Atualizar status da venda
+            venda.atualizar_status_pagamento()
+            
+            messages.success(request, 'Pagamento excluído com sucesso!')
+            return redirect('venda_detail', pk=venda.pk)
+    
+    return render(request, 'core/confirm_delete.html', {
+        'object': pagamento,
+        'title': 'Excluir Pagamento',
+        'cancel_url': 'venda_detail',
+        'cancel_id': venda.pk
     })

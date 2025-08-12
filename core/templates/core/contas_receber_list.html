@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-invoice-dollar me-2"></i>{{ title }}</h2>
+    <a href="{% url 'contas_receber_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nova Conta a Receber
+    </a>
+</div>
+
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Total em Aberto</h6>
+                        <h3 class="mb-0">R$ {{ total_em_aberto|floatformat:2 }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Contas Vencidas</h6>
+                        <h3 class="mb-0">{{ count_vencidas }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-exclamation-triangle fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title">Valor Vencido</h6>
+                        <h3 class="mb-0">R$ {{ total_vencidas|floatformat:2 }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-times fa-2x opacity-75"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Cliente</label>
+                <select name="cliente" class="form-select">
+                    <option value="">Todos os clientes</option>
+                    {% for cliente in clientes %}
+                    <option value="{{ cliente.pk }}" {% if request.GET.cliente == cliente.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ cliente.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">Todos os status</option>
+                    <option value="aberto" {% if request.GET.status == "aberto" %}selected{% endif %}>Em Aberto</option>
+                    <option value="parcial" {% if request.GET.status == "parcial" %}selected{% endif %}>Pago Parcial</option>
+                    <option value="quitado" {% if request.GET.status == "quitado" %}selected{% endif %}>Quitado</option>
+                    <option value="vencido" {% if request.GET.status == "vencido" %}selected{% endif %}>Vencido</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Vencidas</label>
+                <select name="vencidas" class="form-select">
+                    <option value="">Todas</option>
+                    <option value="sim" {% if request.GET.vencidas == "sim" %}selected{% endif %}>Apenas vencidas</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-2"></i>Filtrar
+                </button>
+                <a href="{% url 'contas_receber_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Limpar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabela de Contas -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Contas a Receber</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if contas %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Venda</th>
+                        <th>Valor Total</th>
+                        <th>Valor Pago</th>
+                        <th>Valor Pendente</th>
+                        <th>% Pago</th>
+                        <th>Vencimento</th>
+                        <th>Status</th>
+                        <th width="100">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conta in contas %}
+                    <tr {% if conta.esta_vencido %}class="table-warning"{% endif %}>
+                        <td>
+                            <strong>{{ conta.cliente.nome }}</strong>
+                            {% if conta.esta_vencido %}
+                            <i class="fas fa-exclamation-triangle text-danger ms-1" title="Vencido"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if conta.venda %}
+                            <a href="{% url 'venda_detail' conta.venda.pk %}" class="text-decoration-none">
+                                {{ conta.venda.numero_venda }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>R$ {{ conta.valor_total|floatformat:2 }}</td>
+                        <td class="text-success">R$ {{ conta.valor_pago|floatformat:2 }}</td>
+                        <td class="text-primary"><strong>R$ {{ conta.valor_pendente|floatformat:2 }}</strong></td>
+                        <td>
+                            <div class="progress" style="height: 20px;">
+                                <div class="progress-bar {% if conta.percentual_pago >= 100 %}bg-success{% elif conta.percentual_pago >= 50 %}bg-warning{% else %}bg-info{% endif %}" 
+                                     role="progressbar" style="width: {{ conta.percentual_pago }}%">
+                                    {{ conta.percentual_pago|floatformat:0 }}%
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ conta.data_vencimento|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if conta.status == 'aberto' %}
+                            <span class="badge bg-warning">Em Aberto</span>
+                            {% elif conta.status == 'parcial' %}
+                            <span class="badge bg-info">Pago Parcial</span>
+                            {% elif conta.status == 'quitado' %}
+                            <span class="badge bg-success">Quitado</span>
+                            {% elif conta.status == 'vencido' %}
+                            <span class="badge bg-danger">Vencido</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'conta_receber_detail' conta.pk %}" class="btn btn-outline-info btn-sm" title="Ver Detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if conta.valor_pendente > 0 %}
+                                <a href="{% url 'conta_receber_pagamento' conta.pk %}" class="btn btn-outline-success btn-sm" title="Registrar Pagamento">
+                                    <i class="fas fa-money-bill"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-file-invoice-dollar fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Nenhuma conta a receber encontrada</h5>
+            <p class="text-muted">As contas a receber aparecerão aqui quando criadas.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Paginação -->
+{% if contas.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if contas.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page=1{% if request.GET.cliente %}&cliente={{ request.GET.cliente }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.vencidas %}&vencidas={{ request.GET.vencidas }}{% endif %}">&laquo; Primeira</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ contas.previous_page_number }}{% if request.GET.cliente %}&cliente={{ request.GET.cliente }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.vencidas %}&vencidas={{ request.GET.vencidas }}{% endif %}">Anterior</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+            <span class="page-link">
+                Página {{ contas.number }} de {{ contas.paginator.num_pages }}
+            </span>
+        </li>
+
+        {% if contas.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ contas.next_page_number }}{% if request.GET.cliente %}&cliente={{ request.GET.cliente }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.vencidas %}&vencidas={{ request.GET.vencidas }}{% endif %}">Próxima</a>
+        </li>
+        <li class="page-item">
+            <a class="page-link" href="?page={{ contas.paginator.num_pages }}{% if request.GET.cliente %}&cliente={{ request.GET.cliente }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.vencidas %}&vencidas={{ request.GET.vencidas }}{% endif %}">Última &raquo;</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

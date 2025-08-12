@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-money-bill me-2"></i>{{ title }}</h2>
+    <a href="{% url 'conta_receber_detail' conta.pk %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Voltar
+    </a>
+</div>
+
+<div class="row">
+    <!-- Informações da Conta -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-user me-2"></i>Informações da Conta</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col">Cliente:</div>
+                    <div class="col text-end"><strong>{{ conta.cliente.nome }}</strong></div>
+                </div>
+                {% if conta.venda %}
+                <div class="row mb-2">
+                    <div class="col">Venda:</div>
+                    <div class="col text-end">
+                        <a href="{% url 'venda_detail' conta.venda.pk %}" class="text-decoration-none">
+                            <strong>{{ conta.venda.numero_venda }}</strong>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="row mb-2">
+                    <div class="col">Valor Total:</div>
+                    <div class="col text-end"><strong>R$ {{ conta.valor_total|floatformat:2 }}</strong></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Já Pago:</div>
+                    <div class="col text-end text-success"><strong>R$ {{ conta.valor_pago|floatformat:2 }}</strong></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Vencimento:</div>
+                    <div class="col text-end">
+                        <span class="{% if conta.esta_vencido %}text-danger{% endif %}">
+                            {{ conta.data_vencimento|date:"d/m/Y" }}
+                        </span>
+                    </div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col">A Receber:</div>
+                    <div class="col text-end">
+                        <h4 class="text-primary mb-0">R$ {{ conta.valor_pendente|floatformat:2 }}</h4>
+                    </div>
+                </div>
+                
+                <!-- Progresso do Pagamento -->
+                <div class="mb-3">
+                    <label class="form-label small">Progresso do Pagamento</label>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" 
+                             role="progressbar" 
+                             style="width: {{ conta.percentual_pago }}%">
+                            {{ conta.percentual_pago|floatformat:1 }}%
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Status -->
+                {% if conta.status == 'aberto' %}
+                <span class="badge bg-warning text-dark">
+                    <i class="fas fa-clock me-1"></i>Em Aberto
+                </span>
+                {% elif conta.status == 'parcial' %}
+                <span class="badge bg-info">
+                    <i class="fas fa-hourglass-half me-1"></i>Pago Parcial
+                </span>
+                {% elif conta.status == 'quitado' %}
+                <span class="badge bg-success">
+                    <i class="fas fa-check me-1"></i>Quitado
+                </span>
+                {% elif conta.status == 'vencido' %}
+                <span class="badge bg-danger">
+                    <i class="fas fa-exclamation-triangle me-1"></i>Vencido
+                </span>
+                {% endif %}
+                
+                {% if conta.esta_vencido and conta.status != 'quitado' %}
+                <div class="alert alert-danger mt-2 small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Esta conta está vencida!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Histórico de Pagamentos -->
+        {% if conta.venda.pagamentos.exists %}
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-history me-2"></i>Histórico de Pagamentos</h6>
+            </div>
+            <div class="card-body">
+                {% for pagamento in conta.venda.pagamentos.all %}
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 {% if not forloop.last %}border-bottom{% endif %}">
+                    <div>
+                        <small class="text-muted d-block">{{ pagamento.data_pagamento|date:"d/m/Y H:i" }}</small>
+                        <strong>{{ pagamento.forma_pagamento.nome }}</strong>
+                    </div>
+                    <span class="text-success fw-bold">R$ {{ pagamento.valor_pago|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Formulário de Pagamento -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-money-bill-wave me-2"></i>Novo Pagamento</h5>
+                <small class="text-muted">Registre um pagamento parcial ou total</small>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.forma_pagamento|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.valor_pago|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            {{ form.observacao|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Valor Pendente:</span>
+                                        <span class="fw-bold">R$ {{ conta.valor_pendente|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Valor Máximo:</span>
+                                        <span class="fw-bold text-primary">R$ {{ conta.valor_pendente|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="fas fa-check me-2"></i>Registrar Pagamento
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Botões de Ação Rápida -->
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-info w-100" onclick="preencherValor({{ conta.valor_pendente }})">
+                            <i class="fas fa-money-bill me-1"></i>Total
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary w-100" onclick="preencherValor({{ conta.valor_pendente|floatformat:2 }} / 2)">
+                            <i class="fas fa-divide me-1"></i>50%
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary w-100" onclick="preencherValor({{ conta.valor_pendente|floatformat:2 }} * 0.3)">
+                            <i class="fas fa-percent me-1"></i>30%
+                        </button>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-secondary w-100" onclick="preencherValorCustom()">
+                            <i class="fas fa-calculator me-1"></i>Custom
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function preencherValor(valor) {
+    document.getElementById('id_valor_pago').value = valor.toFixed(2);
+}
+
+function preencherValorCustom() {
+    const maxValor = {{ conta.valor_pendente|floatformat:2 }};
+    const valor = prompt(`Digite o valor do pagamento (máximo R$ ${maxValor.toFixed(2)}):`);
+    if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
+        const valorNumerico = parseFloat(valor);
+        if (valorNumerico <= maxValor) {
+            document.getElementById('id_valor_pago').value = valorNumerico.toFixed(2);
+        } else {
+            alert('Valor não pode ser maior que o valor pendente!');
+        }
+    }
+}
+</script>
+{% endblock %}

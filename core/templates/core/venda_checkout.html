@@ -1,0 +1,331 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-credit-card me-2"></i>{{ title }}</h2>
+    <a href="{% url 'venda_detail' venda.pk %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Voltar
+    </a>
+</div>
+
+<div class="row">
+    <!-- Resumo da Venda -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-receipt me-2"></i>Resumo da Venda</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col">Cliente:</div>
+                    <div class="col text-end"><strong>{{ venda.cliente.nome|default:"Balcão" }}</strong></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Total de Itens:</div>
+                    <div class="col text-end"><strong>{{ venda.quantidade_total_itens }}</strong></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Valor Total:</div>
+                    <div class="col text-end"><strong>R$ {{ venda.valor_total|floatformat:2 }}</strong></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Já Pago:</div>
+                    <div class="col text-end text-success"><strong>R$ {{ venda.valor_total_pago|floatformat:2 }}</strong></div>
+                </div>
+                <hr>
+                <div class="row mb-3">
+                    <div class="col">A Pagar:</div>
+                    <div class="col text-end">
+                        <h4 class="text-primary mb-0">R$ {{ venda.valor_pendente|floatformat:2 }}</h4>
+                    </div>
+                </div>
+                
+                <!-- Itens da Venda -->
+                <h6><i class="fas fa-list me-2"></i>Itens:</h6>
+                {% for item in venda.itens.all %}
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>{{ item.produto.nome }} ({{ item.quantidade }}x)</span>
+                    <span>R$ {{ item.valor_total|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+                
+                {% if venda.pagamentos.exists %}
+                <hr>
+                <h6><i class="fas fa-money-bill me-2"></i>Pagamentos:</h6>
+                {% for pagamento in venda.pagamentos.all %}
+                <div class="d-flex justify-content-between small mb-1 text-success">
+                    <span>{{ pagamento.forma_pagamento.nome }}</span>
+                    <span>R$ {{ pagamento.valor_pago|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Formas de Pagamento -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-money-bill-wave me-2"></i>Formas de Pagamento</h5>
+                <small class="text-muted">Você pode usar múltiplas formas de pagamento</small>
+            </div>
+            <div class="card-body">
+                <form method="post" id="checkout-form">
+                    {% csrf_token %}
+                    
+                    <div id="pagamentos-container">
+                        <!-- Primeira forma de pagamento (sempre visível) -->
+                        <div class="payment-row mb-3 p-3 border rounded">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Forma de Pagamento</label>
+                                    <select name="forma_pagamento" class="form-select" required>
+                                        <option value="">Selecione...</option>
+                                        {% for forma in formas_pagamento %}
+                                        <option value="{{ forma.pk }}">{{ forma.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Valor</label>
+                                    <input type="number" name="valor_pagamento" class="form-control payment-value" 
+                                           step="0.01" min="0.01" placeholder="0,00" required>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-payment" disabled>
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="button" class="btn btn-outline-primary mb-3" id="add-payment">
+                        <i class="fas fa-plus me-2"></i>Adicionar Forma de Pagamento
+                    </button>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Valor a Pagar:</span>
+                                        <span class="fw-bold">R$ {{ venda.valor_pendente|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Total Digitado:</span>
+                                        <span class="fw-bold" id="total-digitado">R$ 0,00</span>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between">
+                                        <span>Resta Pagar:</span>
+                                        <span class="fw-bold" id="diferenca">R$ {{ venda.valor_pendente|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="submit" class="btn btn-success btn-lg w-100 mb-2" id="pagar-parcial">
+                                <i class="fas fa-plus me-2"></i>Registrar Pagamento Parcial
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg w-100" id="pagar-total" style="display: none;">
+                                <i class="fas fa-check me-2"></i>Quitar Venda Completa
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Botões de Ação Rápida -->
+        <div class="row mt-3">
+            <div class="col-md-2">
+                <button type="button" class="btn btn-info w-100" onclick="pagarCompleto('dinheiro')">
+                    <i class="fas fa-money-bill me-1"></i>Dinheiro (Total)
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-info w-100" onclick="pagarCompleto('pix')">
+                    <i class="fas fa-qrcode me-1"></i>PIX (Total)
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-info w-100" onclick="pagarCompleto('cartao')">
+                    <i class="fas fa-credit-card me-1"></i>Cartão (Total)
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-secondary w-100" onclick="pagarMetade()">
+                    <i class="fas fa-divide me-1"></i>50%
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-secondary w-100" onclick="pagarPorcentagem(30)">
+                    <i class="fas fa-percent me-1"></i>30%
+                </button>
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-secondary w-100" onclick="pagarValorFixo()">
+                    <i class="fas fa-calculator me-1"></i>Valor Fixo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const valorDevido = {{ venda.valor_pendente|floatformat:2 }};
+    let paymentCount = 1;
+    
+    function updateTotals() {
+        let totalDigitado = 0;
+        document.querySelectorAll('.payment-value').forEach(input => {
+            totalDigitado += parseFloat(input.value || 0);
+        });
+        
+        document.getElementById('total-digitado').textContent = `R$ ${totalDigitado.toFixed(2)}`;
+        
+        const restaPagar = valorDevido - totalDigitado;
+        const diferencaElement = document.getElementById('diferenca');
+        diferencaElement.textContent = `R$ ${Math.max(0, restaPagar).toFixed(2)}`;
+        
+        const pagarParcialBtn = document.getElementById('pagar-parcial');
+        const pagarTotalBtn = document.getElementById('pagar-total');
+        
+        if (totalDigitado > 0 && totalDigitado <= valorDevido + 0.01) {
+            // Valor válido para pagamento
+            if (Math.abs(restaPagar) <= 0.01) {
+                // Pagamento completo
+                pagarParcialBtn.style.display = 'none';
+                pagarTotalBtn.style.display = 'block';
+                diferencaElement.className = 'fw-bold text-success';
+            } else {
+                // Pagamento parcial
+                pagarParcialBtn.style.display = 'block';
+                pagarTotalBtn.style.display = 'none';
+                diferencaElement.className = 'fw-bold text-info';
+            }
+            pagarParcialBtn.disabled = false;
+            pagarTotalBtn.disabled = false;
+        } else if (totalDigitado > valorDevido + 0.01) {
+            // Valor maior que o devido
+            pagarParcialBtn.disabled = true;
+            pagarTotalBtn.disabled = true;
+            diferencaElement.className = 'fw-bold text-danger';
+            pagarParcialBtn.style.display = 'block';
+            pagarTotalBtn.style.display = 'none';
+        } else {
+            // Sem valor digitado
+            pagarParcialBtn.disabled = true;
+            pagarTotalBtn.disabled = true;
+            diferencaElement.className = 'fw-bold text-muted';
+            pagarParcialBtn.style.display = 'block';
+            pagarTotalBtn.style.display = 'none';
+        }
+    }
+    
+    function addPaymentRow() {
+        paymentCount++;
+        const container = document.getElementById('pagamentos-container');
+        const newRow = document.querySelector('.payment-row').cloneNode(true);
+        
+        // Limpar valores
+        newRow.querySelectorAll('select, input').forEach(field => {
+            field.value = '';
+            field.required = true;
+        });
+        newRow.querySelector('.remove-payment').disabled = false;
+        
+        container.appendChild(newRow);
+        
+        // Adicionar event listeners
+        newRow.querySelector('.payment-value').addEventListener('input', updateTotals);
+        newRow.querySelector('.remove-payment').addEventListener('click', function() {
+            newRow.remove();
+            paymentCount--;
+            updateTotals();
+            
+            // Se só sobrou uma linha, desabilitar o botão de remover
+            if (paymentCount === 1) {
+                document.querySelector('.remove-payment').disabled = true;
+            }
+        });
+    }
+    
+    // Event listeners
+    document.getElementById('add-payment').addEventListener('click', addPaymentRow);
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('payment-value')) {
+            updateTotals();
+        }
+    });
+    
+    // Funções para botões de ação rápida
+    window.pagarCompleto = function(tipo) {
+        // Limpar todos os pagamentos
+        document.querySelectorAll('.payment-row:not(:first-child)').forEach(row => row.remove());
+        
+        // Configurar primeira linha
+        const firstRow = document.querySelector('.payment-row');
+        const select = firstRow.querySelector('select');
+        const input = firstRow.querySelector('input');
+        
+        // Encontrar a forma de pagamento pelo tipo
+        const formas = {
+            'dinheiro': ['dinheiro', 'dinheiro à vista', 'cash'],
+            'pix': ['pix', 'transferência pix'],
+            'cartao': ['cartão', 'cartao', 'cartão de crédito', 'cartão de débito']
+        };
+        
+        for (let option of select.options) {
+            const optionText = option.text.toLowerCase();
+            if (formas[tipo].some(f => optionText.includes(f))) {
+                select.value = option.value;
+                break;
+            }
+        }
+        
+        input.value = valorDevido.toFixed(2);
+        paymentCount = 1;
+        updateTotals();
+    };
+    
+    // Botão para pagar 50% do valor
+    window.pagarMetade = function() {
+        const firstInput = document.querySelector('.payment-value');
+        firstInput.value = (valorDevido / 2).toFixed(2);
+        updateTotals();
+    };
+    
+    // Pagar uma porcentagem específica
+    window.pagarPorcentagem = function(porcentagem) {
+        const firstInput = document.querySelector('.payment-value');
+        firstInput.value = (valorDevido * porcentagem / 100).toFixed(2);
+        updateTotals();
+    };
+    
+    // Pagar valor fixo (prompt)
+    window.pagarValorFixo = function() {
+        const valor = prompt(`Digite o valor a pagar (máximo R$ ${valorDevido.toFixed(2)}):`);
+        if (valor && !isNaN(valor) && parseFloat(valor) > 0) {
+            const valorNumerico = parseFloat(valor);
+            if (valorNumerico <= valorDevido) {
+                const firstInput = document.querySelector('.payment-value');
+                firstInput.value = valorNumerico.toFixed(2);
+                updateTotals();
+            } else {
+                alert('Valor não pode ser maior que o valor devido!');
+            }
+        }
+    };
+    
+    // Inicializar
+    updateTotals();
+});
+</script>
+{% endblock %}

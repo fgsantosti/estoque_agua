@@ -118,12 +118,14 @@ class Venda(models.Model):
     STATUS_CHOICES = [
         ('aberta', 'Aberta'),
         ('finalizada', 'Finalizada'),
+        ('paga', 'Paga'),
+        ('parcial', 'Pago Parcial'),
         ('cancelada', 'Cancelada')
     ]
     
     numero_venda = models.CharField(max_length=20, unique=True, editable=False)
     cliente = models.ForeignKey('Cliente', on_delete=models.SET_NULL, null=True, blank=True)
-    forma_pagamento = models.ForeignKey('FormaPagamento', on_delete=models.SET_NULL, null=True)
+    forma_pagamento = models.ForeignKey('FormaPagamento', on_delete=models.SET_NULL, null=True, blank=True)
     data_venda = models.DateTimeField(default=timezone.now)
     usuario = models.ForeignKey(User, on_delete=models.CASCADE)
     observacao = models.TextField(blank=True)
@@ -131,10 +133,65 @@ class Venda(models.Model):
     data_criacao = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
     
+    @property
+    def valor_total_pago(self):
+        """Soma todos os pagamentos realizados"""
+        return sum(p.valor_pago for p in self.pagamentos.all()) or 0
+    
+    @property
+    def valor_pendente(self):
+        """Valor que ainda falta pagar"""
+        return self.valor_total - self.valor_total_pago
+    
+    @property
+    def percentual_pago(self):
+        """Percentual já pago da venda"""
+        if self.valor_total > 0:
+            return (self.valor_total_pago / self.valor_total) * 100
+        return 0
+    
+    def atualizar_status_pagamento(self):
+        """Atualiza status baseado nos pagamentos"""
+        valor_pago = self.valor_total_pago
+        
+        # Se venda foi cancelada, não alterar status
+        if self.status == 'cancelada':
+            return
+            
+        if valor_pago == 0:
+            # Sem pagamentos - manter como aberta se não foi finalizada
+            if self.status not in ['aberta']:
+                self.status = 'finalizada'  # Se estava finalizada, manter finalizada
+                self.save()
+        elif valor_pago >= self.valor_total:
+            # Totalmente paga
+            if self.status != 'paga':
+                self.status = 'paga'
+                self.save()
+        else:
+            # Pagamento parcial
+            if self.status != 'parcial':
+                self.status = 'parcial'
+                self.save()
+    
     def save(self, *args, **kwargs):
         if not self.numero_venda:
             # Gerar número sequencial da venda
-            ultimo_numero = Venda.objects.count() + 1
+            # Buscar o maior número existente para evitar duplicatas
+            ultimo_registro = Venda.objects.filter(numero_venda__startswith='VD').order_by('numero_venda').last()
+            if ultimo_registro:
+                # Extrair o número da string e incrementar
+                try:
+                    ultimo_numero = int(ultimo_registro.numero_venda[2:]) + 1
+                except (ValueError, IndexError):
+                    ultimo_numero = 1
+            else:
+                ultimo_numero = 1
+            
+            # Verificar se já existe para evitar conflitos
+            while Venda.objects.filter(numero_venda=f"VD{ultimo_numero:06d}").exists():
+                ultimo_numero += 1
+                
             self.numero_venda = f"VD{ultimo_numero:06d}"
         super().save(*args, **kwargs)
     
@@ -183,3 +240,82 @@ class ItemVenda(models.Model):
     class Meta:
         verbose_name = "Item da Venda"
         verbose_name_plural = "Itens da Venda"
+
+
+class Pagamento(models.Model):
+    """Controla os pagamentos de uma venda - permite múltiplas formas"""
+    venda = models.ForeignKey(Venda, on_delete=models.CASCADE, related_name='pagamentos')
+    forma_pagamento = models.ForeignKey(FormaPagamento, on_delete=models.CASCADE)
+    valor_pago = models.DecimalField(max_digits=10, decimal_places=2)
+    data_pagamento = models.DateTimeField(default=timezone.now)
+    observacao = models.TextField(blank=True)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    class Meta:
+        ordering = ['-data_pagamento']
+        verbose_name = "Pagamento"
+        verbose_name_plural = "Pagamentos"
+    
+    def __str__(self):
+        return f"Pagamento {self.forma_pagamento.nome} - R$ {self.valor_pago} - Venda {self.venda.numero_venda}"
+
+
+class ContasReceber(models.Model):
+    """Controla contas a receber de clientes"""
+    STATUS_CHOICES = [
+        ('aberto', 'Em Aberto'),
+        ('parcial', 'Pago Parcial'),
+        ('quitado', 'Quitado'),
+        ('vencido', 'Vencido')
+    ]
+    
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='contas_receber')
+    venda = models.ForeignKey(Venda, on_delete=models.CASCADE, null=True, blank=True)
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2)
+    valor_pago = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    data_vencimento = models.DateField()
+    data_criacao = models.DateTimeField(default=timezone.now)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='aberto')
+    observacao = models.TextField(blank=True)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    @property
+    def valor_pendente(self):
+        return self.valor_total - self.valor_pago
+    
+    @property
+    def percentual_pago(self):
+        if self.valor_total > 0:
+            return (self.valor_pago / self.valor_total) * 100
+        return 0
+    
+    @property
+    def esta_vencido(self):
+        from datetime import date
+        return self.data_vencimento < date.today() and self.status != 'quitado'
+    
+    def __str__(self):
+        return f"Conta {self.cliente.nome} - R$ {self.valor_pendente} pendente"
+    
+    class Meta:
+        verbose_name = "Conta a Receber"
+        verbose_name_plural = "Contas a Receber"
+        ordering = ['-data_criacao']
+
+
+class PagamentoConta(models.Model):
+    """Pagamentos diretos em contas a receber (para contas avulsas sem venda)"""
+    conta_receber = models.ForeignKey(ContasReceber, on_delete=models.CASCADE, related_name='pagamentos_conta')
+    forma_pagamento = models.ForeignKey(FormaPagamento, on_delete=models.CASCADE)
+    valor_pago = models.DecimalField(max_digits=10, decimal_places=2)
+    data_pagamento = models.DateTimeField(default=timezone.now)
+    observacao = models.TextField(blank=True)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    class Meta:
+        ordering = ['-data_pagamento']
+        verbose_name = "Pagamento de Conta"
+        verbose_name_plural = "Pagamentos de Contas"
+    
+    def __str__(self):
+        return f"Pagamento {self.forma_pagamento.nome} - R$ {self.valor_pago} - {self.conta_receber.cliente.nome}"
